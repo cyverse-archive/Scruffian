@@ -13,6 +13,13 @@
         pass (get props "scruffian.irods.password")
         home (get props "scruffian.irods.home")
         resc (get props "scruffian.irods.defaultResource")]
+    (log/debug (str "Host: " host))
+    (log/debug (str "Port: " port))
+    (log/debug (str "Zone: " zone))
+    (log/debug (str "User: " user))
+    (log/debug (str "Pass: lol"))
+    (log/debug (str "Home: " home))
+    (log/debug (str "Resc: " resc))
     (init host port user pass home zone resc)))
 
 (defn scruffy-copy
@@ -51,7 +58,8 @@
 (defn download
   "Returns a response map filled out with info that lets the client download
    a file."
-  [user file-path]  
+  [user file-path]
+  (log/debug "In download.")
   (with-jargon
     (cond
       (not (exists? file-path))

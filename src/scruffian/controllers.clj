@@ -135,12 +135,13 @@
     (not (query-param? request "user")) 
     (bad-query "user" "download")
     
-    (not (valid-body? request {:path string?}))
-    (create-response (bad-body request {:paths string?}))
+    (not (query-param? request "path"))
+    (bad-query "path" "download")
     
     :else
     (let [user     (query-param request "user")
-          filepath (:path (:body request))]
+          filepath (query-param request "path")]
+      (log/debug "in do-download.")
       (create-response (actions/download user filepath)))))
 
 (defn do-upload

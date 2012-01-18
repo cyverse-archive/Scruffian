@@ -42,7 +42,7 @@
 (defn site-handler
   [routes]
   (-> routes
-    custom-multipart
+    wrap-multipart-params
     wrap-keyword-params
     wrap-nested-params))
 
@@ -55,12 +55,13 @@
     zkurl
     (when (not (cl/can-run?))
       (log/warn "THIS APPLICATION CANNOT RUN ON THIS MACHINE. SO SAYETH ZOOKEEPER.")
-      (log/warn "THIS APPLICATION WILL NOT EXECUTE CORRECTLY."))
+      (log/warn "THIS APPLICATION WILL NOT EXECUTE CORRECTLY.")
+      (System/exit 1))
     
-    (reset! props (cl/properties "scruffian"))
-    (System/exit 1))
+    (reset! props (cl/properties "scruffian")))
   
   (actions/scruffian-init @props)
+  (log/debug (str "properties: " @props))
   
   (log/warn (str "Listening on " (listen-port)))
   (jetty/run-jetty (site-handler scruffian-routes) {:port (listen-port)}))
