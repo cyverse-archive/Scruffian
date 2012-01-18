@@ -73,6 +73,6 @@ rm -r lib/*
 %config %attr(0644,iplant,iplant) /etc/scruffian/scruffian.properties
 
 %attr(0755,root,root) /etc/init.d/scruffian
-%attr(0644,iplant,iplant) /usr/local/lib/scruffian/scruffian-0.0.5-SNAPSHOT-standalone.jar
+%attr(0644,iplant,iplant) /usr/local/lib/scruffian/scruffian-1.0.0-SNAPSHOT-standalone.jar
 
 
