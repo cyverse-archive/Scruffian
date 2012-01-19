@@ -11,6 +11,7 @@
             [ring.adapter.jetty :as jetty]
             [scruffian.controllers :as ctlr]
             [scruffian.actions :as actions]
+            [scruffian.query-params :as qp]
             [clojure-commons.clavin-client :as cl]
             [clojure-commons.props :as cc-props]))
 
@@ -36,15 +37,16 @@
   [{filename :filename content-type :content-type stream :stream}]
   (partial ctlr/store stream filename))
 
-(defn custom-multipart [handler]
-  (wrap-multipart-params handler :store store-irods))
+(def custom-multipart
+  #(wrap-multipart-params :store store-irods))
 
 (defn site-handler
   [routes]
   (-> routes
-    wrap-multipart-params
+    ;#(wrap-multipart-params % :store store-irods)
     wrap-keyword-params
-    wrap-nested-params))
+    wrap-nested-params
+    qp/wrap-query-params))
 
 (defn -main
   [& args]

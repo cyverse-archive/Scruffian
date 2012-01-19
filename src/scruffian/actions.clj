@@ -2,7 +2,8 @@
   (:use [clj-jargon.jargon])
   (:require [clojure-commons.file-utils :as ft]
             [clojure.java.io :as io]
-            [clojure.tools.logging :as log]))
+            [clojure.tools.logging :as log]
+            [ring.util.response :as rsp-utils]))
 
 (defn scruffian-init
   [props]
@@ -55,11 +56,8 @@
             (scruffy-copy user istream dest-path))
           (scruffy-copy user istream dest-path))))))
 
-(defn download
-  "Returns a response map filled out with info that lets the client download
-   a file."
+(defn- get-istream
   [user file-path]
-  (log/debug "In download.")
   (with-jargon
     (cond
       (not (exists? file-path))
@@ -69,5 +67,18 @@
       {:status 400 :body (str "File " file-path " is not readable.")}
       
       :else
-      {:status 200
-       :body (input-stream file-path)})))
+      (input-stream file-path))))
+
+(defn download
+  "Returns a response map filled out with info that lets the client download
+   a file."
+  [user file-path]
+  (log/debug "In download.")
+  (let [istream (get-istream user file-path)]
+    (if (map? istream)
+      istream
+      (-> {:status 200
+           :body istream}
+        (rsp-utils/header 
+          "Content-Disposition" 
+          (str "attachment; filename=\"" (ft/basename file-path) "\""))))))

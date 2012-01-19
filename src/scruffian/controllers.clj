@@ -142,7 +142,10 @@
     (let [user     (query-param request "user")
           filepath (query-param request "path")]
       (log/debug "in do-download.")
-      (create-response (actions/download user filepath)))))
+      (rsp-utils/header
+        (actions/download user filepath)
+        "Content-Disposition"
+        (str "attachment; filename=\"" (basename filepath) "\"")))))
 
 (defn do-upload
   [request]
