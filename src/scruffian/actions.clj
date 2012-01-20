@@ -1,9 +1,11 @@
 (ns scruffian.actions
-  (:use [clj-jargon.jargon])
+  (:use [clj-jargon.jargon]
+        [scruffian.error-codes])
   (:require [clojure-commons.file-utils :as ft]
             [clojure.java.io :as io]
             [clojure.tools.logging :as log]
-            [ring.util.response :as rsp-utils]))
+            [ring.util.response :as rsp-utils]
+            [clojure.string :as string]))
 
 (defn scruffian-init
   [props]
@@ -37,24 +39,20 @@
      :permissions (dataobject-perm-map user dest-path)}))
 
 (defn store
-  ([istream user dest-path]
-    (store istream user dest-path false))
-  ([istream user dest-path threaded?]
-    (with-jargon
-      (cond
-        (not (exists? (ft/dirname dest-path)))
-        (do (log/warn (str "Directory " (ft/dirname dest-path) " does not exist."))
-          {:status "failure" :id (ft/dirname dest-path)})
-        
-        (not (is-writeable? (ft/dirname dest-path)))
-        (do (log/warn (str "Directory " (ft/dirname dest-path) " is not writeable.")) 
-          {:status "failure" :id (ft/dirname dest-path)})
+  [istream user dest-path]
+  (with-jargon
+    (let [ddir (ft/dirname dest-path)]
+      (when (not (exists? ddir))
+        (mkdirs ddir))
+      
+      (cond          
+        (not (is-writeable? user ddir))
+        (log/error (str "Directory " ddir " is not writeable."))
         
         :else
-        (if threaded?
-          (future
-            (scruffy-copy user istream dest-path))
-          (scruffy-copy user istream dest-path))))))
+        (do
+          (scruffy-copy user istream dest-path)
+          dest-path)))))
 
 (defn- get-istream
   [user file-path]
@@ -68,6 +66,31 @@
       
       :else
       (input-stream file-path))))
+
+(defn- new-filename
+  [tmp-path]
+  (string/join "." (drop-last (string/split (ft/basename tmp-path) #"\."))))
+
+(defn upload
+  [user tmp-path final-path]
+  (with-jargon
+    (cond
+      (not (exists? final-path))
+      {:status 400 :error_code ERR_DOES_NOT_EXIST :id final-path :action "upload"}
+      
+      (not (is-writeable? user final-path))
+      {:status 400 :error_code ERR_NOT_WRITEABLE :id final-path :action "upload"}
+      
+      :else
+      (let [new-fname (new-filename tmp-path)
+            new-path  (ft/path-join final-path new-fname)]
+        (if (exists? new-path)
+          (delete new-path))
+        (move tmp-path new-path)
+        (set-owner new-path user)
+        {:status 200
+         :path new-path
+         :action "upload"}))))
 
 (defn download
   "Returns a response map filled out with info that lets the client download

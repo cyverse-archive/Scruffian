@@ -127,7 +127,7 @@
 
 (defn store
   [istream filename user dest-dir]
-  (actions/store istream user (path-join dest-dir filename) ))
+  (actions/store istream user (path-join dest-dir filename)))
 
 (defn do-download
   [request]
@@ -149,10 +149,11 @@
 
 (defn do-upload
   [request]
-  (let [user (form-param request "user")
-        dest (form-param request "dest")
-        stfn (:store request)]
-    (create-response (stfn user dest))))
+  (log/warn (str "REQUEST: " request))
+  (let [user     (form-param request "user")
+        dest     (form-param request "dest")
+        up-path  (get (:multipart-params request) "file")]
+    (create-response (actions/upload user up-path dest))))
 
 (defn do-urlupload
   [request]

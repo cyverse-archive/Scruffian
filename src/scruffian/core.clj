@@ -13,7 +13,8 @@
             [scruffian.actions :as actions]
             [scruffian.query-params :as qp]
             [clojure-commons.clavin-client :as cl]
-            [clojure-commons.props :as cc-props]))
+            [clojure-commons.props :as cc-props]
+            [clojure-commons.file-utils :as ft]))
 
 (def props (atom nil))
 
@@ -33,17 +34,23 @@
   
   (route/not-found "Not Found!"))
 
-(defn store-irods
-  [{filename :filename content-type :content-type stream :stream}]
-  (partial ctlr/store stream filename))
+(defn gen-uuid []
+  (str (java.util.UUID/randomUUID)))
 
-(def custom-multipart
-  #(wrap-multipart-params :store store-irods))
+(defn store-irods
+  [item]
+  (let [uuid     (gen-uuid)
+        filename (str (:filename item) "." uuid)
+        user     (get @props "scruffian.irods.username")
+        home     (get @props "scruffian.irods.home")
+        temp-dir (ft/path-join home user "de-temp-uploads")
+        stream   (:stream item)]
+    (ctlr/store stream filename user temp-dir)))
 
 (defn site-handler
   [routes]
   (-> routes
-    ;#(wrap-multipart-params % :store store-irods)
+    (wrap-multipart-params {:store store-irods}) 
     wrap-keyword-params
     wrap-nested-params
     qp/wrap-query-params))
