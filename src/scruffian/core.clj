@@ -12,6 +12,7 @@
             [scruffian.controllers :as ctlr]
             [scruffian.actions :as actions]
             [scruffian.query-params :as qp]
+            [scruffian.json-body :as jb]
             [clojure-commons.clavin-client :as cl]
             [clojure-commons.props :as cc-props]
             [clojure-commons.file-utils :as ft]))
@@ -30,27 +31,17 @@
         (ctlr/do-upload request))
   
   (POST "/urlupload" request
+        (log/warn (str "Body: " (:body request)))
         (ctlr/do-urlupload request))
   
   (route/not-found "Not Found!"))
 
-(defn gen-uuid []
-  (str (java.util.UUID/randomUUID)))
-
-(defn store-irods
-  [item]
-  (let [uuid     (gen-uuid)
-        filename (str (:filename item) "." uuid)
-        user     (get @props "scruffian.irods.username")
-        home     (get @props "scruffian.irods.home")
-        temp-dir (ft/path-join home user "de-temp-uploads")
-        stream   (:stream item)]
-    (ctlr/store stream filename user temp-dir)))
 
 (defn site-handler
   [routes]
   (-> routes
-    (wrap-multipart-params {:store store-irods}) 
+    jb/parse-json-body
+    (wrap-multipart-params {:store ctlr/store-irods}) 
     wrap-keyword-params
     wrap-nested-params
     qp/wrap-query-params))
@@ -70,6 +61,7 @@
     (reset! props (cl/properties "scruffian")))
   
   (actions/scruffian-init @props)
+  (ctlr/init @props)
   (log/debug (str "properties: " @props))
   
   (log/warn (str "Listening on " (listen-port)))

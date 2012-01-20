@@ -7,6 +7,12 @@
             [clojure.tools.logging :as log]
             [ring.util.response :as rsp-utils]))
 
+(def props (atom nil))
+
+(defn init
+  [prps]
+  (reset! props prps))
+
 (defn is-failed?
   "Checks the map 'result-msg' to see if it represents
    a failed jargon-core call."
@@ -125,9 +131,21 @@
     :else
     {:status "success"}))
 
+(defn gen-uuid []
+  (str (java.util.UUID/randomUUID)))
+
 (defn store
   [istream filename user dest-dir]
   (actions/store istream user (path-join dest-dir filename)))
+
+(defn store-irods
+  [{stream :stream orig-filename :filename}]
+  (let [uuid     (gen-uuid)
+        filename (str orig-filename "." uuid)
+        user     (get @props "scruffian.irods.username")
+        home     (get @props "scruffian.irods.home")
+        temp-dir (path-join home user "de-temp-uploads")]
+    (store stream filename user temp-dir)))
 
 (defn do-download
   [request]
@@ -169,4 +187,5 @@
           dest    (:dest (:body request))
           addr    (:address (:body request))
           istream (ssl/input-stream addr)]
-      (create-response (actions/store istream user dest true)))))
+      (actions/upload user (store-irods {:stream istream :filename (basename dest)}) (dirname dest)) 
+      (create-response {:status "success" :action "url-upload" :msg "Upload scheduled."}))))
