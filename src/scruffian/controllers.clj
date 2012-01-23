@@ -185,7 +185,13 @@
     :else
     (let [user    (query-param request "user")
           dest    (:dest (:body request))
+          fname   (basename dest)
+          ddir    (dirname dest)
           addr    (:address (:body request))
           istream (ssl/input-stream addr)]
-      (actions/upload user (store-irods {:stream istream :filename (basename dest)}) (dirname dest)) 
-      (create-response {:status "success" :action "url-upload" :msg "Upload scheduled."}))))
+      (future 
+        (actions/upload user (store-irods {:stream istream :filename fname}) ddir))
+      (create-response 
+        {:status "success" 
+         :action "url-upload" 
+         :msg "Upload scheduled."}))))

@@ -92,9 +92,6 @@
          :path new-path
          :action "upload"}))))
 
-(defn urlupload
-  [user ])
-
 (defn download
   "Returns a response map filled out with info that lets the client download
    a file."
