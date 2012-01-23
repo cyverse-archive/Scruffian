@@ -189,8 +189,10 @@
           ddir    (dirname dest)
           addr    (:address (:body request))
           istream (ssl/input-stream addr)]
-      (future 
-        (actions/upload user (store-irods {:stream istream :filename fname}) ddir))
+      (future
+        (do
+          (actions/upload user (store-irods {:stream istream :filename fname}) ddir)
+          (actions/set-meta dest "source" addr "URI")))
       (create-response 
         {:status "success" 
          :action "url-upload" 

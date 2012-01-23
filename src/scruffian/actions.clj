@@ -25,6 +25,11 @@
     (log/debug (str "Resc: " resc))
     (init host port user pass home zone resc)))
 
+(defn set-meta
+  [path attr value unit]
+  (with-jargon
+    (set-metadata path attr value unit)))
+
 (defn scruffy-copy
   [user istream dest-path]
   (let [ostream (output-stream dest-path)]
