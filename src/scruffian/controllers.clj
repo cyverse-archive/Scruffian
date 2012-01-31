@@ -144,7 +144,7 @@
         filename (str orig-filename "." uuid)
         user     (get @props "scruffian.irods.username")
         home     (get @props "scruffian.irods.home")
-        temp-dir (path-join home user "de-temp-uploads")]
+        temp-dir (get @props "scruffian.irods.temp-dir")]
     (store stream filename user temp-dir)))
 
 (defn do-download
