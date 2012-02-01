@@ -81,10 +81,16 @@
   (with-jargon
     (cond
       (not (exists? final-path))
-      {:status 400 :error_code ERR_DOES_NOT_EXIST :id final-path :action "upload"}
+      {:status "failure" 
+       :error_code ERR_DOES_NOT_EXIST 
+       :id final-path 
+       :action "upload"}
       
       (not (is-writeable? user final-path))
-      {:status 400 :error_code ERR_NOT_WRITEABLE :id final-path :action "upload"}
+      {:status "failure" 
+       :error_code ERR_NOT_WRITEABLE 
+       :id final-path 
+       :action "upload"}
       
       :else
       (let [new-fname (new-filename tmp-path)
@@ -93,9 +99,14 @@
           (delete new-path))
         (move tmp-path new-path)
         (set-owner new-path user)
-        {:status 200
-         :path new-path
-         :action "upload"}))))
+        {:status "success"
+         :action "file-upload"
+         :file {:id new-path
+                :label (ft/basename new-path)
+                :permissions (dataobject-perm-map user new-path)
+                :date-created (created-date new-path)
+                :date-modified (lastmod-date new-path)
+                :file-size (str (file-size new-path))}}))))
 
 (defn download
   "Returns a response map filled out with info that lets the client download
