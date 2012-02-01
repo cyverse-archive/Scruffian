@@ -196,4 +196,7 @@
       (create-response 
         {:status "success" 
          :action "url-upload" 
-         :msg "Upload scheduled."}))))
+         :msg "Upload scheduled."
+         :url addr
+         :label fname
+         :dest dest}))))
