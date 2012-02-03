@@ -145,6 +145,7 @@
         user     (get @props "scruffian.irods.username")
         home     (get @props "scruffian.irods.home")
         temp-dir (get @props "scruffian.irods.temp-dir")]
+    (log/warn filename)
     (store stream filename user temp-dir)))
 
 (defn do-download
@@ -189,10 +190,15 @@
           ddir    (dirname dest)
           addr    (:address (:body request))
           istream (ssl/input-stream addr)]
+      (log/warn (str "User: " user))
+      (log/warn (str "Dest: " dest))
+      (log/warn (str "Fname: " fname))
+      (log/warn (str "Ddir: " ddir))
+      (log/warn (str "Addr: " addr))  
       (future
         (do
           (actions/upload user (store-irods {:stream istream :filename fname}) ddir)
-          (actions/set-meta dest "source" addr "URI")))
+          (comment (actions/set-meta dest "source" addr "URI"))))
       (create-response 
         {:status "success" 
          :action "url-upload" 
