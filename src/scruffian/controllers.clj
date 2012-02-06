@@ -195,14 +195,4 @@
       (log/warn (str "Fname: " fname))
       (log/warn (str "Ddir: " ddir))
       (log/warn (str "Addr: " addr))  
-      (future
-        (do
-          (actions/upload user (store-irods {:stream istream :filename fname}) ddir)
-          (comment (actions/set-meta dest "source" addr "URI"))))
-      (create-response 
-        {:status "success" 
-         :action "url-upload" 
-         :msg "Upload scheduled."
-         :url addr
-         :label fname
-         :dest dest}))))
+      (create-response (actions/urlimport user addr fname ddir)))))
