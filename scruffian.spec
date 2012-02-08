@@ -43,7 +43,6 @@ install -d $RPM_BUILD_ROOT/etc/scruffian/
 install scruffian $RPM_BUILD_ROOT/etc/init.d/
 install scruffian-1.0.0-SNAPSHOT-standalone.jar $RPM_BUILD_ROOT/usr/local/lib/scruffian/
 install conf/log4j.properties $RPM_BUILD_ROOT/etc/scruffian/
-install conf/scruffian.properties $RPM_BUILD_ROOT/etc/scruffian/
 
 %post
 /sbin/chkconfig --add scruffian
@@ -62,6 +61,7 @@ fi
 %clean
 lein clean
 rm -r lib/*
+rm -r $RPM_BUILD_ROOT
 
 %files
 %attr(-,iplant,iplant) /usr/local/lib/scruffian/
