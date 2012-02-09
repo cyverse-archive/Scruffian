@@ -71,7 +71,6 @@ rm -r $RPM_BUILD_ROOT
 %attr(-,iplant,iplant) /etc/scruffian/
 
 %config %attr(0644,iplant,iplant) /etc/scruffian/log4j.properties
-%config %attr(0644,iplant,iplant) /etc/scruffian/scruffian.properties
 
 %attr(0755,root,root) /etc/init.d/scruffian
 %attr(0644,iplant,iplant) /usr/local/lib/scruffian/scruffian-1.0.0-SNAPSHOT-standalone.jar
