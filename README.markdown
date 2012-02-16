@@ -35,12 +35,21 @@ A success will return JSON like this:
                 "read" : true|false,
                 "write" : true|false
             },
-            "date-created" : "<seconds since the epoch as a string>",
-            "date-modified" : "<seconds since the epoch as a string>",
-            "file-size" : "<size in bytes as a string>"
-        }
+        "date-created" : "<seconds since the epoch as a string>",
+        "date-modified" : "<seconds since the epoch as a string>",
+        "file-size" : "<size in bytes as a string>"
+    }
 
 A failure looks like one of Nibblonians error JSON objects, with eiother a ERR_DOES_NOT_EXIST or ERR_NOT_WRITEABLE error_code and an action of "upload".
+
+Example:
+
+    {
+        "status" : "failure",
+        "error_code" : "ERR_DOES_NOT_EXIST",
+        "id" : "<intended file path>",
+        "action" : "upload"
+    }
 
 ## URL Uploads
 
