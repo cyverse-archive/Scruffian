@@ -84,3 +84,34 @@ On on error, you'll either get a stacktrace or JSON that looks like this:
 
 Uploads and URL uploads are both staged in a temporary directory in iRODS before being moved to their final location.
 
+## Save As
+
+Curl:
+
+    curl -H "Content-Type:application/json" -d '{"content" : "This is the content for the file.", "dest" : "/iplant/home/testuser/savedfile.txt"}' http://127.0.0.1:31370/saveas?user=wregglej
+    
+Success:
+
+    {
+        "action" : "saveas",
+        "status" : "success",
+        "file" : {
+            "id" : "<path to the file>",
+            "label" : "<basename of the file path>",
+            "permissions" : {
+                "read" : true|false,
+                "write" : true|false
+            },
+        "date-created" : "<seconds since the epoch as a string>",
+        "date-modified" : "<seconds since the epoch as a string>",
+        "file-size" : "<size in bytes as a string>"
+    }
+    
+All errors have the same general format:
+    {
+        "action" : "saveas",
+        "status" : "failure",
+        "error_code" : "an error code"
+    }
+    
+Potential error codes: ERR_NOT_A_USER, ERR_DOES_NOT_EXIST, ERR_NOT_WRITEABLE, ERR_EXISTS
