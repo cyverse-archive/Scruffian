@@ -243,5 +243,14 @@
                :path dest})
             
             :else
-            (with-in-str cont
-              (actions/store *in* user dest)))))))
+            (create-response
+              (with-in-str cont
+                (actions/store *in* user dest)
+                {:status "success"
+                 :action "saveas"
+                 :file {:id dest
+                        :label (ft/basename dest)
+                        :permissions (dataobject-perm-map user dest)
+                        :date-created (created-date dest)
+                        :date-modified (lastmod-date dest)
+                        :file-size (str (file-size dest))}})))))))
