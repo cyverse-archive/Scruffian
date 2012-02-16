@@ -159,12 +159,12 @@
     
     :else
     (let [user     (query-param request "user")
-          filepath (query-param request "path")]
+          filepath (query-param request "path")
+          resp     (actions/download user filepath)]
       (log/debug "in do-download.")
-      (rsp-utils/header
-        (actions/download user filepath)
-        "Content-Disposition"
-        (str "attachment; filename=\"" (basename filepath) "\"")))))
+      (if (= (:status resp) 200)
+        resp
+        (create-response resp)))))
 
 (defn do-upload
   [request]

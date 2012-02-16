@@ -76,10 +76,14 @@
   (with-jargon
     (cond
       (not (exists? file-path))
-      {:status 404 :body (str "File " file-path " not found.")}
+      {:status "failure" 
+       :action "download"
+       :error_code ERR_DOES_NOT_EXIST}
       
       (not (is-readable? user file-path))
-      {:status 400 :body (str "File " file-path " is not readable.")}
+      {:status "failure"
+       :action "download"
+       :error_code ERR_NOT_READABLE}
       
       :else
       (input-stream file-path))))
