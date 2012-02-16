@@ -34,6 +34,10 @@
         (log/warn (str "Body: " (:body request)))
         (ctlr/do-urlupload request))
   
+  (POST "/saveas" request
+        (log/warn (str "Body: " (:body request)))
+        (ctlr/do-saveas request))
+  
   (route/not-found "Not Found!"))
 
 
@@ -61,7 +65,7 @@
     (reset! props (cl/properties "scruffian")))
   
   (actions/scruffian-init @props)
-  (ctlr/init @props)
+  (ctlr/ctlr-init @props)
   (log/debug (str "properties: " @props))
   
   (log/warn (str "Listening on " (listen-port)))

@@ -1,7 +1,8 @@
 (ns scruffian.controllers
-  (:use [clojure-commons.file-utils]
+  (:use [clj-jargon.jargon]
         [scruffian.error-codes])
   (:require [scruffian.actions :as actions]
+            [clojure-commons.file-utils :as ft]
             [scruffian.ssl :as ssl]
             [clojure.data.json :as json]
             [clojure.tools.logging :as log]
@@ -9,7 +10,7 @@
 
 (def props (atom nil))
 
-(defn init
+(defn ctlr-init
   [prps]
   (reset! props prps))
 
@@ -136,7 +137,7 @@
 
 (defn store
   [istream filename user dest-dir]
-  (actions/store istream user (path-join dest-dir filename)))
+  (actions/store istream user (ft/path-join dest-dir filename)))
 
 (defn store-irods
   [{stream :stream orig-filename :filename}]
@@ -146,7 +147,8 @@
         home     (get @props "scruffian.irods.home")
         temp-dir (get @props "scruffian.irods.temp-dir")]
     (log/warn filename)
-    (store stream filename user temp-dir)))
+    (with-jargon
+      (store stream filename user temp-dir))))
 
 (defn do-download
   [request]
@@ -186,8 +188,8 @@
     :else
     (let [user    (query-param request "user")
           dest    (:dest (:body request))
-          fname   (basename dest)
-          ddir    (dirname dest)
+          fname   (ft/basename dest)
+          ddir    (ft/dirname dest)
           addr    (:address (:body request))
           istream (ssl/input-stream addr)]
       (log/warn (str "User: " user))
@@ -196,3 +198,50 @@
       (log/warn (str "Ddir: " ddir))
       (log/warn (str "Addr: " addr))  
       (create-response (actions/urlimport user addr fname ddir)))))
+
+(defn do-saveas
+  [request]
+  (log/warn (str "REQUEST: " request))
+  (cond
+      (not (query-param? request "user"))
+      (bad-query "user" "saveas")
+      
+      (not (valid-body? request {:dest string? :content string?}))
+      (create-response (bad-body request {:dest string? :content string?}))
+      
+      :else
+      (let [user (query-param request "user")
+            dest (:dest (:body request))
+            cont (:content (:body request))]
+        (with-jargon
+          (cond
+            (not (user-exists? user))
+            (create-response
+              {:action "saveas"
+               :status "failure"
+               :error_code ERR_NOT_A_USER})
+            
+            (not (exists? (ft/dirname dest)))
+            (create-response 
+              {:action "saveas"
+               :status "failure"
+               :error_code ERR_DOES_NOT_EXIST
+               :path (ft/dirname dest)})
+            
+            (not (is-writeable? user (ft/dirname dest)))
+            (create-response
+              {:action "saveas"
+               :status "failure"
+               :error_code ERR_NOT_WRITEABLE
+               :path (ft/dirname dest)})
+            
+            (exists? dest)
+            (create-response
+              {:action "saveas"
+               :status "failure"
+               :error_code ERR_EXISTS
+               :path dest})
+            
+            :else
+            (with-in-str cont
+              (actions/store *in* user dest)))))))

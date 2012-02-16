@@ -57,19 +57,18 @@
 
 (defn store
   [istream user dest-path]
-  (with-jargon
-    (let [ddir (ft/dirname dest-path)]
-      (when (not (exists? ddir))
-        (mkdirs ddir))
+  (let [ddir (ft/dirname dest-path)]
+    (when (not (exists? ddir))
+      (mkdirs ddir))
+    
+    (cond
+      (not (is-writeable? user ddir))
+      (log/error (str "Directory " ddir " is not writeable."))
       
-      (cond          
-        (not (is-writeable? user ddir))
-        (log/error (str "Directory " ddir " is not writeable."))
-        
-        :else
-        (do
-          (scruffy-copy user istream dest-path)
-          dest-path)))))
+      :else
+      (do
+        (scruffy-copy user istream dest-path)
+        dest-path))))
 
 (defn- get-istream
   [user file-path]
