@@ -130,6 +130,7 @@
         name-desc (str "URL Import of " filename " from " address)]
     (json/json-str 
       {:name name-desc
+       :type "data"
        :description name-desc
        :output_dir dest-path
        :create_output_subdir false
