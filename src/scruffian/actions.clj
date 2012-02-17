@@ -126,10 +126,11 @@
 (defn- jex-urlimport
   [user address filename dest-path]
   (let [curl-dir  (ft/dirname @curl-path)
-        curl-name (ft/basename @curl-path)]
+        curl-name (ft/basename @curl-path)
+        name-desc (str "URL Import of " filename " from " address)]
     (json/json-str 
-      {:name (str "URL Import")
-       :description (str "URL Import of " address)
+      {:name name-desc
+       :description name-desc
        :output_dir dest-path
        :create_output_subdir false
        :uuid (str (java.util.UUID/randomUUID))
