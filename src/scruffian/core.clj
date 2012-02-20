@@ -4,7 +4,10 @@
         [ring.middleware.params]
         [ring.middleware.keyword-params]
         [ring.middleware.nested-params]
-        [ring.middleware.multipart-params])
+        [ring.middleware.multipart-params]
+        [scruffian.error-codes]
+        [slingshot.slingshot :only [try+]]
+        [clojure.data.json :only [json-str]])
   (:require [clojure.tools.logging :as log]
             [compojure.route :as route]
             [compojure.handler :as handler]
@@ -23,20 +26,64 @@
   [] 
   (Integer/parseInt (get @props "scruffian.app.listen-port")))
 
+(defn err-resp [action err-obj]
+  {:status 500
+   :body (-> err-obj
+           (assoc :action action)
+           (assoc :status "failure")
+           json-str)})
+
 (defroutes scruffian-routes  
   (GET "/download" request
-       (ctlr/do-download request))
+       (try+
+         (ctlr/do-download request)
+         (catch error? err
+           (log/error err)
+           (err-resp "download" (:object &throw-context)) )
+         (catch java.lang.Exception e
+           (log/error e)
+           (err-resp "download" (unchecked &throw-context)))))
   
   (POST "/upload" request
-        (ctlr/do-upload request))
+        (try+ 
+          {:status 200 
+           :body (-> (ctlr/do-upload request)
+                   (assoc :action "upload")
+                   json-str)} 
+          (catch error? err
+            (log/error err)
+            (err-resp "upload" (:object &throw-context)))
+          (catch java.lang.Exception e
+            (log/error e)
+            (err-resp "upload" (unchecked &throw-context)))))
   
   (POST "/urlupload" request
         (log/warn (str "Body: " (:body request)))
-        (ctlr/do-urlupload request))
+        (try+
+          {:status 200 
+           :body (-> (ctlr/do-urlupload request)
+                   (assoc :action "url-upload")
+                   json-str)}
+          (catch error? err
+            (log/error err)
+            (err-resp "url-upload" (:object &throw-context)))
+          (catch java.lang.Exception e
+            (log/error e)
+            (err-resp "url-upload" (unchecked &throw-context)))))
   
   (POST "/saveas" request
         (log/warn (str "Body: " (:body request)))
-        (ctlr/do-saveas request))
+        (try+ 
+          {:status 200
+           :body (-> (ctlr/do-saveas request)
+                   (assoc :action "saveas")
+                   json-str)}
+          (catch error? err
+            (log/error err)
+            (err-resp "saveas" (:object &throw-context)))
+          (catch java.lang.Exception e
+            (log/error e)
+            (err-resp "saveas" (unchecked &throw-context)))))
   
   (route/not-found "Not Found!"))
 

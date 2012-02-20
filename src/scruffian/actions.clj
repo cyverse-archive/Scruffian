@@ -1,6 +1,7 @@
 (ns scruffian.actions
   (:use [clj-jargon.jargon]
-        [scruffian.error-codes])
+        [scruffian.error-codes]
+        [slingshot.slingshot :only [try+ throw+]])
   (:require [clojure-commons.file-utils :as ft]
             [clojure.java.io :as io]
             [clojure.data.json :as json]
@@ -61,31 +62,28 @@
     (when (not (exists? ddir))
       (mkdirs ddir))
     
-    (cond
-      (not (is-writeable? user ddir))
+    (when (not (is-writeable? user ddir))
       (log/error (str "Directory " ddir " is not writeable."))
-      
-      :else
-      (do
-        (scruffy-copy user istream dest-path)
-        dest-path))))
+      (throw+ {:error_code ERR_NOT_WRITEABLE
+               :path ddir} ))
+    
+    (scruffy-copy user istream dest-path)
+    dest-path))
 
 (defn- get-istream
   [user file-path]
   (with-jargon
-    (cond
-      (not (exists? file-path))
-      {:status "failure" 
-       :action "download"
-       :error_code ERR_DOES_NOT_EXIST}
-      
-      (not (is-readable? user file-path))
-      {:status "failure"
-       :action "download"
-       :error_code ERR_NOT_READABLE}
-      
-      :else
-      (input-stream file-path))))
+    (when (not (user-exists? user))
+      (throw+ {:error_code ERR_NOT_A_USER
+               :user user}))
+    (when (not (exists? file-path))
+      (throw+ {:error_code ERR_DOES_NOT_EXIST
+               :path file-path})) 
+    (when (not (is-readable? user file-path))
+      (throw+ {:error_code ERR_NOT_READABLE
+               :user user
+               :path file-path}))
+    (input-stream file-path)))
 
 (defn- new-filename
   [tmp-path]
@@ -94,34 +92,31 @@
 (defn upload
   [user tmp-path final-path]
   (with-jargon
-    (cond
-      (not (exists? final-path))
-      {:status "failure" 
-       :error_code ERR_DOES_NOT_EXIST 
-       :id final-path 
-       :action "upload"}
-      
-      (not (is-writeable? user final-path))
-      {:status "failure" 
-       :error_code ERR_NOT_WRITEABLE 
-       :id final-path 
-       :action "upload"}
-      
-      :else
-      (let [new-fname (new-filename tmp-path)
-            new-path  (ft/path-join final-path new-fname)]
-        (if (exists? new-path)
-          (delete new-path))
-        (move tmp-path new-path)
-        (set-owner new-path user)
-        {:status "success"
-         :action "file-upload"
-         :file {:id new-path
-                :label (ft/basename new-path)
-                :permissions (dataobject-perm-map user new-path)
-                :date-created (created-date new-path)
-                :date-modified (lastmod-date new-path)
-                :file-size (str (file-size new-path))}}))))
+    (when (not (user-exists? user))
+      (throw+ {:error_code ERR_NOT_A_USER
+               :user user}))
+    
+    (when (not (exists? final-path))
+      (throw+ {:error_code ERR_DOES_NOT_EXIST 
+               :id final-path}))
+    
+    (when (not (is-writeable? user final-path))
+      (throw+ {:error_code ERR_NOT_WRITEABLE 
+               :id final-path}))
+    
+    (let [new-fname (new-filename tmp-path)
+          new-path  (ft/path-join final-path new-fname)]
+      (if (exists? new-path)
+        (delete new-path))
+      (move tmp-path new-path)
+      (set-owner new-path user)
+      {:status "success"
+       :file {:id new-path
+              :label (ft/basename new-path)
+              :permissions (dataobject-perm-map user new-path)
+              :date-created (created-date new-path)
+              :date-modified (lastmod-date new-path)
+              :file-size (str (file-size new-path))}})))
 
 (defn- jex-urlimport
   [user address filename dest-path]
@@ -172,22 +167,30 @@
      filename - the filename of the file being imported.
      dest-path - irods path indicating the directory the file should go in."
   [user address filename dest-path]
+  (with-jargon
+    (when (not (user-exists? user))
+      (throw+ {:error_code ERR_NOT_A_USER
+               :user user}))
+    
+    (when (not (is-writeable? user dest-path))
+      (throw+ {:error_code ERR_NOT_WRITEABLE
+               :user user
+               :path dest-path}))
+    
+    (when (exists? (ft/path-join dest-path filename))
+      (throw+ {:error_code ERR_EXISTS
+               :path (ft/path-join dest-path filename)})))
+  
   (let [req-body (jex-urlimport user address filename dest-path)
-        {status :status body :body} (jex-send req-body)]
-    (cond
-      (= status 200)
-      {:status "success" 
-       :action "url-upload" 
-       :msg "Upload scheduled."
-       :url address
-       :label filename
-       :dest dest-path}
-      
-      (not= status 200)
-      {:status "failure"
-       :action "url-upload"
-       :msg body
-       :error_code ERR_REQUEST_FAILED})))
+        {jex-status :status jex-body :body} (jex-send req-body)]
+    (when (not= jex-status 200)
+      (throw+ {:msg jex-body
+               :error_code ERR_REQUEST_FAILED}))
+    {:status "success" 
+     :msg "Upload scheduled."
+     :url address
+     :label filename
+     :dest dest-path}))
 
 (defn download
   "Returns a response map filled out with info that lets the client download
@@ -195,10 +198,8 @@
   [user file-path]
   (log/debug "In download.")
   (let [istream (get-istream user file-path)]
-    (if (map? istream)
-      istream
-      (-> {:status 200
-           :body istream}
-        (rsp-utils/header 
-          "Content-Disposition" 
-          (str "attachment; filename=\"" (ft/basename file-path) "\""))))))
+    (-> {:status 200
+         :body istream}
+      (rsp-utils/header 
+        "Content-Disposition" 
+        (str "attachment; filename=\"" (ft/basename file-path) "\"")))))

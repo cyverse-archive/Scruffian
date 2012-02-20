@@ -1,6 +1,7 @@
 (ns scruffian.controllers
   (:use [clj-jargon.jargon]
-        [scruffian.error-codes])
+        [scruffian.error-codes]
+        [slingshot.slingshot :only [try+ throw+]])
   (:require [scruffian.actions :as actions]
             [clojure-commons.file-utils :as ft]
             [scruffian.ssl :as ssl]
@@ -13,27 +14,6 @@
 (defn ctlr-init
   [prps]
   (reset! props prps))
-
-(defn is-failed?
-  "Checks the map 'result-msg' to see if it represents
-   a failed jargon-core call."
-  [result-msg]
-  (log/debug (str "is-failed? " result-msg))
-  (= "failure" (:status result-msg)))
-
-(defn create-response
-  "Creates a Ring-compatible response map from the 'results' map returned
-   by the calls into irods."
-  ([results] (create-response results "text/plain"))
-  ([results content-type]
-    (log/debug (str "create-response " results))
-    (let [status (if (not (is-failed? results)) 200 400)
-          body (json/json-str results)
-          retval (merge
-                   (rsp-utils/content-type (rsp-utils/response "") content-type)
-                   {:status status :body body})]
-      (log/info (str "Returning " (json/json-str retval)))
-      retval)))
 
 (defn invalid-fields
   "Validates the format of a map against a spec.
@@ -110,27 +90,24 @@
   (log/debug (str "form-param " field))
   (get (:params request) field))
 
-(defn bad-query [key action]
-  (create-response
-    {:action action
-     :status "failure"
-     :error_code ERR_MISSING_QUERY_PARAMETER}))
+(defn form-param?
+  "Checks to see of the form data associated with the
+   request contains the specified field."
+  [request field]
+  (contains? (:params request) field))
+
+(defn bad-query [query-param]
+  (throw+ {:error_code ERR_MISSING_QUERY_PARAMETER
+           :param query-param}))
 
 (defn bad-body 
   [request body-spec]
-  (cond
-    (not (map? (:body request)))
-    {:status "failure"
-     :action "body-check"
-     :error_code ERR_INVALID_JSON}
-    
-    (not (map-is-valid? (:body request) body-spec))
-    {:status "failure"
-     :error_code ERR_BAD_OR_MISSING_FIELD
-     :fields (invalid-fields  (:body request) body-spec)}
-    
-    :else
-    {:status "success"}))
+  (when (not (map? (:body request)))
+    (throw+ {:error_code ERR_INVALID_JSON}))
+  
+  (when (not (map-is-valid? (:body request) body-spec))
+    (throw+ {:error_code ERR_BAD_OR_MISSING_FIELD
+             :fields (invalid-fields  (:body request) body-spec)})))
 
 (defn gen-uuid []
   (str (java.util.UUID/randomUUID)))
@@ -152,105 +129,91 @@
 
 (defn do-download
   [request]
-  (cond
-    (not (query-param? request "user")) 
-    (bad-query "user" "download")
-    
-    (not (query-param? request "path"))
-    (bad-query "path" "download")
-    
-    :else
-    (let [user     (query-param request "user")
-          filepath (query-param request "path")
-          resp     (actions/download user filepath)]
-      (log/debug "in do-download.")
-      (if (= (:status resp) 200)
-        resp
-        (create-response resp)))))
+  (when (not (query-param? request "user")) 
+    (throw+ (bad-query "user")))
+  
+  (when (not (query-param? request "path"))
+    (throw+ (bad-query "path")))
+  
+  (let [user     (query-param request "user")
+        filepath (query-param request "path")]
+    (actions/download user filepath)))
 
 (defn do-upload
   [request]
   (log/warn (str "REQUEST: " request))
+  (when (not (form-param? request "user"))
+    (throw+ {:error_code ERR_MISSING_FORM_FIELD
+             :field "user"}))
+  
+  (when (not (form-param? request "dest"))
+    (throw+ {:error_code ERR_MISSING_FORM_FIELD
+             :field "dest"}))
+  
+  (when (not (contains? (:multipart-params request) "file"))
+    (throw+ {:error_code ERR_MISSING_FORM_FIELD
+             :field "file"}))
+  
   (let [user     (form-param request "user")
         dest     (form-param request "dest")
         up-path  (get (:multipart-params request) "file")]
-    (create-response (actions/upload user up-path dest))))
+    (actions/upload user up-path dest)))
 
 (defn do-urlupload
   [request]
-  (cond
-    (not (query-param? request "user"))
-    (bad-query "user" "url-upload")
-    
-    (not (valid-body? request {:dest string? :address string?}))
-    (create-response (bad-body request {:dest string? :address string?}))
-    
-    :else
-    (let [user    (query-param request "user")
-          dest    (:dest (:body request))
-          fname   (ft/basename dest)
-          ddir    (ft/dirname dest)
-          addr    (:address (:body request))
-          istream (ssl/input-stream addr)]
-      (log/warn (str "User: " user))
-      (log/warn (str "Dest: " dest))
-      (log/warn (str "Fname: " fname))
-      (log/warn (str "Ddir: " ddir))
-      (log/warn (str "Addr: " addr))  
-      (create-response (actions/urlimport user addr fname ddir)))))
+  (when (not (query-param? request "user"))
+    (bad-query "user"))
+  
+  (when (not (valid-body? request {:dest string? :address string?}))
+    (bad-body request {:dest string? :address string?}))
+  
+  (let [user    (query-param request "user")
+        dest    (:dest (:body request))
+        fname   (ft/basename dest)
+        ddir    (ft/dirname dest)
+        addr    (:address (:body request))
+        istream (ssl/input-stream addr)]
+    (log/warn (str "User: " user))
+    (log/warn (str "Dest: " dest))
+    (log/warn (str "Fname: " fname))
+    (log/warn (str "Ddir: " ddir))
+    (log/warn (str "Addr: " addr))  
+    (actions/urlimport user addr fname ddir)))
 
 (defn do-saveas
   [request]
   (log/warn (str "REQUEST: " request))
-  (cond
-      (not (query-param? request "user"))
-      (bad-query "user" "saveas")
+  (when (not (query-param? request "user"))
+    (bad-query "user"))
+  
+  (when (not (valid-body? request {:dest string? :content string?}))
+    (bad-body request {:dest string? :content string?}))
+  
+  (let [user (query-param request "user")
+        dest (:dest (:body request))
+        cont (:content (:body request))]
+    (with-jargon
+      (when (not (user-exists? user))
+        (throw+ {:user user
+                 :error_code ERR_NOT_A_USER}))
       
-      (not (valid-body? request {:dest string? :content string?}))
-      (create-response (bad-body request {:dest string? :content string?}))
+      (when (not (exists? (ft/dirname dest)))
+        (throw+ {:error_code ERR_DOES_NOT_EXIST
+                 :path (ft/dirname dest)}))
       
-      :else
-      (let [user (query-param request "user")
-            dest (:dest (:body request))
-            cont (:content (:body request))]
-        (with-jargon
-          (cond
-            (not (user-exists? user))
-            (create-response
-              {:action "saveas"
-               :status "failure"
-               :error_code ERR_NOT_A_USER})
-            
-            (not (exists? (ft/dirname dest)))
-            (create-response 
-              {:action "saveas"
-               :status "failure"
-               :error_code ERR_DOES_NOT_EXIST
-               :path (ft/dirname dest)})
-            
-            (not (is-writeable? user (ft/dirname dest)))
-            (create-response
-              {:action "saveas"
-               :status "failure"
-               :error_code ERR_NOT_WRITEABLE
-               :path (ft/dirname dest)})
-            
-            (exists? dest)
-            (create-response
-              {:action "saveas"
-               :status "failure"
-               :error_code ERR_EXISTS
-               :path dest})
-            
-            :else
-            (create-response
-              (with-in-str cont
-                (actions/store *in* user dest)
-                {:status "success"
-                 :action "saveas"
-                 :file {:id dest
-                        :label (ft/basename dest)
-                        :permissions (dataobject-perm-map user dest)
-                        :date-created (created-date dest)
-                        :date-modified (lastmod-date dest)
-                        :file-size (str (file-size dest))}})))))))
+      (when (not (is-writeable? user (ft/dirname dest)))
+        (throw+ {:error_code ERR_NOT_WRITEABLE
+                 :path (ft/dirname dest)}))
+      
+      (when (exists? dest)
+        (throw+ {:error_code ERR_EXISTS :path dest}))
+      
+      (with-in-str cont
+        (actions/store *in* user dest)
+        {:status "success"
+         :file {:id dest
+                :label (ft/basename dest)
+                :permissions (dataobject-perm-map user dest)
+                :date-created (created-date dest)
+                :date-modified (lastmod-date dest)
+                :file-size (str (file-size dest))}}))))
