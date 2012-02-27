@@ -130,6 +130,7 @@
        :output_dir dest-path
        :create_output_subdir false
        :uuid (str (java.util.UUID/randomUUID))
+       :monitor_transfer_logs false
        :username user
        :steps 
        [{:component 
