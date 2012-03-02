@@ -39,23 +39,23 @@
          (ctlr/do-download request)
          (catch error? err
            (log/error err)
-           (err-resp "download" (:object &throw-context)) )
+           (err-resp "file-download" (:object &throw-context)) )
          (catch java.lang.Exception e
            (log/error e)
-           (err-resp "download" (unchecked &throw-context)))))
+           (err-resp "file-download" (unchecked &throw-context)))))
   
   (POST "/upload" request
         (try+ 
           {:status 200 
            :body (-> (ctlr/do-upload request)
-                   (assoc :action "upload")
+                   (assoc :action "file-upload")
                    json-str)} 
           (catch error? err
             (log/error err)
-            (err-resp "upload" (:object &throw-context)))
+            (err-resp "file-upload" (:object &throw-context)))
           (catch java.lang.Exception e
             (log/error e)
-            (err-resp "upload" (unchecked &throw-context)))))
+            (err-resp "file-upload" (unchecked &throw-context)))))
   
   (POST "/urlupload" request
         (log/warn (str "Body: " (:body request)))
