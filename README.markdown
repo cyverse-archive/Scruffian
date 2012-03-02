@@ -19,7 +19,7 @@ Most errors will return other contextual fields, but they will vary from error t
 Each section listed below lists the error codes that you may encounter. In addition to these, you may run into the ERR_UNCHECKED_EXCEPTION, which means that an uncaught exception was encountered.
 
 ## Downloading
-Action: "download"
+Action: "file-download"
 
 Error codes:
 
@@ -37,7 +37,7 @@ Curl command:
 This will result is the file contents being barfed out to stdout. Redirect to a file to actually get the file.
 
 ## Uploading
-Action: "upload"
+Action: "file-upload"
 
 Error codes:
 
@@ -56,7 +56,7 @@ Also notice that the 'dest' value points to a directory and not a file.
 A success will return JSON like this:
 
     {
-        "action" : "upload",
+        "action" : "file-upload",
         "status" : "success",
         "file" : {
             "id" : "<path to the file>",
