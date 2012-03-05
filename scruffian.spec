@@ -6,7 +6,7 @@
 Summary: scruffian
 Name: scruffian
 Version: 0.1.0
-Release: 5
+Release: 6
 Epoch: 0
 BuildArchitectures: noarch
 Group: Applications
