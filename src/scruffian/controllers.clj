@@ -4,6 +4,7 @@
         [slingshot.slingshot :only [try+ throw+]])
   (:require [scruffian.actions :as actions]
             [clojure-commons.file-utils :as ft]
+            [clojure.string :as string]
             [scruffian.ssl :as ssl]
             [clojure.data.json :as json]
             [clojure.tools.logging :as log]
@@ -168,10 +169,10 @@
     (bad-body request {:dest string? :address string?}))
   
   (let [user    (query-param request "user")
-        dest    (:dest (:body request))
+        dest    (string/trim (:dest (:body request)))
         fname   (ft/basename dest)
         ddir    (ft/dirname dest)
-        addr    (:address (:body request))
+        addr    (string/trim (:address (:body request)))
         istream (ssl/input-stream addr)]
     (log/warn (str "User: " user))
     (log/warn (str "Dest: " dest))
