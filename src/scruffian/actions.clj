@@ -83,7 +83,10 @@
       (throw+ {:error_code ERR_NOT_READABLE
                :user user
                :path file-path}))
-    (input-stream file-path)))
+    
+    (if (= (file-size file-path) 0)
+      ""
+      (input-stream file-path))))
 
 (defn- new-filename
   [tmp-path]
