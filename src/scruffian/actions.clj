@@ -125,11 +125,12 @@
   [user address filename dest-path]
   (let [curl-dir  (ft/dirname @curl-path)
         curl-name (ft/basename @curl-path)
-        name-desc (str "URL Import of " filename " from " address)]
+        job-name (str "url_import_" filename)
+        job-desc (str "URL Import of " filename " from " address)]
     (json/json-str 
-      {:name name-desc
+      {:name job-name
        :type "data"
-       :description name-desc
+       :description job-desc
        :output_dir dest-path
        :create_output_subdir false
        :uuid (str (java.util.UUID/randomUUID))
