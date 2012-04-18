@@ -10,7 +10,7 @@
             [clojure.string :as string]
             [clj-http.client :as client]))
 
-(def curl-path (atom ""))
+(def curl-path "/usr/local/bin/curl_wrapper.pl")
 (def jex-url (atom ""))
 
 (defn scruffian-init
@@ -29,9 +29,6 @@
     (log/debug (str "Pass: lol"))
     (log/debug (str "Home: " home))
     (log/debug (str "Resc: " resc))
-    
-    (reset! curl-path (get props "scruffian.app.curl-path"))
-    (log/debug (str "curl path: " @curl-path))
     
     (reset! jex-url (get props "scruffian.app.jex"))
     (log/debug (str "jex url: " @jex-url))
@@ -123,8 +120,8 @@
 
 (defn- jex-urlimport
   [user address filename dest-path]
-  (let [curl-dir  (ft/dirname @curl-path)
-        curl-name (ft/basename @curl-path)
+  (let [curl-dir  (ft/dirname curl-path)
+        curl-name (ft/basename curl-path)
         job-name (str "url_import_" filename)
         job-desc (str "URL Import of " filename " from " address)]
     (json/json-str 
