@@ -18,4 +18,7 @@
   :aot [scruffian.core]
   :main scruffian.core
   :repositories {"iplantCollaborative"
-                 "http://projects.iplantcollaborative.org/archiva/repository/internal/"})
+                 "http://projects.iplantcollaborative.org/archiva/repository/internal/"
+                 
+                 "renci.repository"
+                 "http://ci-dev.renci.org/nexus/content/repositories/snapshots/"})
