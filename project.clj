@@ -12,7 +12,7 @@
   :dev-dependencies [[org.iplantc/lein-iplant-rpm "1.1.0-SNAPSHOT"]]
   :iplant-rpm {:summary "scruffian"
                :release 1
-               :dependencies ["iplant-service-config >= 0.1.0-4"]
+               :dependencies ["iplant-service-config >= 0.1.0-5"]
                :config-files ["log4j.properties"]
                :config-path "conf"}
   :aot [scruffian.core]
