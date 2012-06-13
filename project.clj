@@ -9,7 +9,7 @@
                  [ring/ring-jetty-adapter "1.0.1"]
                  [clj-http "0.1.3"]]
   :iplant-rpm {:summary "scruffian",
-               :release 1,
+               :release 2,
                :dependencies ["iplant-service-config >= 0.1.0-5"],
                :config-files ["log4j.properties"],
                :config-path "conf"}
