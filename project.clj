@@ -1,5 +1,4 @@
-(defproject scruffian "1.0.0-SNAPSHOT"
-  :description "Download service for iRODS."
+(defproject scruffian/scruffian "1.0.0-SNAPSHOT"
   :dependencies [[org.clojure/clojure "1.4.0"]
                  [org.clojure/data.json "0.1.1"]
                  [org.clojure/tools.logging "0.2.3"]
@@ -9,16 +8,17 @@
                  [compojure "1.0.1"]
                  [ring/ring-jetty-adapter "1.0.1"]
                  [clj-http "0.1.3"]]
-  :dev-dependencies [[org.iplantc/lein-iplant-rpm "1.1.0-SNAPSHOT"]]
-  :iplant-rpm {:summary "scruffian"
-               :release 1
-               :dependencies ["iplant-service-config >= 0.1.0-5"]
-               :config-files ["log4j.properties"]
+  :iplant-rpm {:summary "scruffian",
+               :release 1,
+               :dependencies ["iplant-service-config >= 0.1.0-5"],
+               :config-files ["log4j.properties"],
                :config-path "conf"}
+  :repositories {"iplantCollaborative"
+                 "http://projects.iplantcollaborative.org/archiva/repository/internal/",
+                 "renci.repository"
+                 "http://ci-dev.renci.org/nexus/content/repositories/snapshots/"}
   :aot [scruffian.core]
   :main scruffian.core
-  :repositories {"iplantCollaborative"
-                 "http://projects.iplantcollaborative.org/archiva/repository/internal/"
-                 
-                 "renci.repository"
-                 "http://ci-dev.renci.org/nexus/content/repositories/snapshots/"})
+  :min-lein-version "2.0.0"
+  :plugins [[org.iplantc/lein-iplant-rpm "1.1.0-SNAPSHOT"]]
+  :description "Download service for iRODS.")
