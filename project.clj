@@ -9,7 +9,6 @@
                  [ring/ring-jetty-adapter "1.0.1"]
                  [clj-http "0.1.3"]]
   :iplant-rpm {:summary "scruffian",
-               :release 2,
                :dependencies ["iplant-service-config >= 0.1.0-5"],
                :config-files ["log4j.properties"],
                :config-path "conf"}
@@ -20,5 +19,5 @@
   :aot [scruffian.core]
   :main scruffian.core
   :min-lein-version "2.0.0"
-  :plugins [[org.iplantc/lein-iplant-rpm "1.2.1-SNAPSHOT"]]
+  :plugins [[org.iplantc/lein-iplant-rpm "1.3.0-SNAPSHOT"]]
   :description "Download service for iRODS.")
