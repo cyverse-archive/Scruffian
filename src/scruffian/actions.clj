@@ -8,7 +8,8 @@
             [clojure.tools.logging :as log]
             [ring.util.response :as rsp-utils]
             [clojure.string :as string]
-            [clj-http.client :as client]))
+            [clj-http.client :as client]
+            [cemerick.url :as url]))
 
 (def curl-path "/usr/local/bin/curl_wrapper.pl")
 (def jex-url (atom ""))
@@ -121,6 +122,15 @@
               :date-modified (lastmod-date new-path)
               :file-size (str (file-size new-path))}})))
 
+(defn url-encode-path
+  [path-to-encode]
+  (string/join "/" (mapv url/url-encode (string/split path-to-encode #"\/"))))
+
+(defn url-encode-url
+  [url-to-encode]
+  (let [full-url (url/url url-to-encode)]
+    (str (assoc full-url :path (url-encode-path (:path full-url))))))
+
 (defn- jex-urlimport
   [user address filename dest-path]
   (let [curl-dir  (ft/dirname curl-path)
@@ -145,7 +155,7 @@
           [{:name "-o"
             :value filename
             :order 1}
-           {:name address
+           {:name (url-encode-url address)
             :value ""
             :order 2}]
           :input []

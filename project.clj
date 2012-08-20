@@ -5,6 +5,7 @@
                  [org.iplantc/clj-jargon "0.1.1-SNAPSHOT"]
                  [org.iplantc/clojure-commons "1.1.0-SNAPSHOT"]
                  [slingshot "0.10.1"]
+                 [com.cemerick/url "0.0.6"]
                  [compojure "1.0.1"]
                  [ring/ring-jetty-adapter "1.0.1"]
                  [clj-http "0.1.3"]]
