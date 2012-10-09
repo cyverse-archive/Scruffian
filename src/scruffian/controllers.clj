@@ -1,6 +1,7 @@
 (ns scruffian.controllers
-  (:use [clj-jargon.jargon]
-        [scruffian.error-codes]
+  (:use clj-jargon.jargon
+        [scruffian.config :exclude [init]]
+        scruffian.error-codes
         [slingshot.slingshot :only [try+ throw+]])
   (:require [scruffian.actions :as actions]
             [clojure-commons.file-utils :as ft]
@@ -9,12 +10,6 @@
             [clojure.data.json :as json]
             [clojure.tools.logging :as log]
             [ring.util.response :as rsp-utils]))
-
-(def props (atom nil))
-
-(defn ctlr-init
-  [prps]
-  (reset! props prps))
 
 (defn invalid-fields
   "Validates the format of a map against a spec.
@@ -114,19 +109,19 @@
   (str (java.util.UUID/randomUUID)))
 
 (defn store
-  [istream filename user dest-dir]
-  (actions/store istream user (ft/path-join dest-dir filename)))
+  [cm istream filename user dest-dir]
+  (actions/store cm istream user (ft/path-join dest-dir filename)))
 
 (defn store-irods
   [{stream :stream orig-filename :filename}]
   (let [uuid     (gen-uuid)
         filename (str orig-filename "." uuid)
-        user     (get @props "scruffian.irods.username")
-        home     (get @props "scruffian.irods.home")
-        temp-dir (get @props "scruffian.irods.temp-dir")]
+        user     (irods-user)
+        home     (irods-home)
+        temp-dir (irods-temp)]
     (log/warn filename)
-    (with-jargon
-      (store stream filename user temp-dir))))
+    (with-jargon (jargon-config) [cm]
+      (store cm stream filename user temp-dir))))
 
 (defn do-download
   [request]
@@ -193,28 +188,28 @@
   (let [user (query-param request "user")
         dest (:dest (:body request))
         cont (:content (:body request))]
-    (with-jargon
-      (when (not (user-exists? user))
+    (with-jargon (jargon-config) [cm]
+      (when (not (user-exists? cm user))
         (throw+ {:user user
                  :error_code ERR_NOT_A_USER}))
       
-      (when (not (exists? (ft/dirname dest)))
+      (when (not (exists? cm (ft/dirname dest)))
         (throw+ {:error_code ERR_DOES_NOT_EXIST
                  :path (ft/dirname dest)}))
       
-      (when (not (is-writeable? user (ft/dirname dest)))
+      (when (not (is-writeable? cm user (ft/dirname dest)))
         (throw+ {:error_code ERR_NOT_WRITEABLE
                  :path (ft/dirname dest)}))
       
-      (when (exists? dest)
+      (when (exists? cm dest)
         (throw+ {:error_code ERR_EXISTS :path dest}))
       
       (with-in-str cont
-        (actions/store *in* user dest)
+        (actions/store cm *in* user dest)
         {:status "success"
          :file {:id dest
                 :label (ft/basename dest)
-                :permissions (dataobject-perm-map user dest)
-                :date-created (created-date dest)
-                :date-modified (lastmod-date dest)
-                :file-size (str (file-size dest))}}))))
+                :permissions (dataobject-perm-map cm user dest)
+                :date-created (created-date cm dest)
+                :date-modified (lastmod-date cm dest)
+                :file-size (str (file-size cm dest))}}))))
