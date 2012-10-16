@@ -20,5 +20,5 @@
   :aot [scruffian.core]
   :main scruffian.core
   :min-lein-version "2.0.0"
-  :plugins [[org.iplantc/lein-iplant-rpm "1.3.0-SNAPSHOT"]]
+  :plugins [[org.iplantc/lein-iplant-rpm "1.4.0-SNAPSHOT"]]
   :description "Download service for iRODS.")
