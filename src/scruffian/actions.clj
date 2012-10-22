@@ -10,7 +10,8 @@
             [ring.util.response :as rsp-utils]
             [clojure.string :as string]
             [clj-http.client :as client]
-            [cemerick.url :as url]))
+            [cemerick.url :as url]
+            [scruffian.prov :as prov]))
 
 (defn set-meta
   [path attr value unit]
@@ -58,9 +59,11 @@
                :user user
                :path file-path}))
     
-    (if (= (file-size cm file-path) 0)
-      ""
-      (input-stream cm file-path))))
+    (let [in-stream  (if (= (file-size cm file-path) 0)
+                       ""
+                       (input-stream cm file-path))]
+      (prov/log-provenance cm user file-path prov/download :data {:path file-path})
+      in-stream)))
 
 (defn- new-filename
   [tmp-path]
@@ -87,7 +90,7 @@
         (delete cm new-path))
       (move cm tmp-path new-path)
       (set-owner cm new-path user)
-      (fix-owners cm new-path user (irods-user))
+      (prov/log-provenance cm user new-path prov/upload :data {:path new-path})
       {:status "success"
        :file {:id new-path
               :label (ft/basename new-path)
@@ -178,6 +181,9 @@
     (when (not= jex-status 200)
       (throw+ {:msg jex-body
                :error_code ERR_REQUEST_FAILED}))
+    (prov/log-provenance cm user address prov/url-import
+                         :data {:url address
+                                :dest (ft/path-join dest-path filename)})
     {:status "success" 
      :msg "Upload scheduled."
      :url address

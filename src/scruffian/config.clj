@@ -27,6 +27,9 @@
 (defn irods-resc [] (get @props "scruffian.irods.defaultResource"))
 (defn irods-temp [] (get @props "scruffian.irods.temp-dir"))
 
+(defn service-name [] (get @props "scruffian.app.service-name"))
+(defn prov-url [] (get @props "scruffian.app.prov-url"))
+
 (defn jargon-init
   []
   (jargon/init
