@@ -1,7 +1,7 @@
 (ns scruffian.config
   (:require [clojure.tools.logging :as log]
             [clojure-commons.clavin-client :as cl]
-            [clojure-commons.props :as cc-props]
+            [clojure-commons.props :as prps]
             [clj-jargon.jargon :as jargon]))
 
 (def props (atom nil))
@@ -43,7 +43,7 @@
 
 (defn init
   []
-  (def zkprops (cc-props/parse-properties "zkhosts.properties"))
+  (def zkprops (prps/parse-properties "zkhosts.properties"))
   (def zkurl (get zkprops "zookeeper"))
   
   (cl/with-zk
@@ -56,3 +56,13 @@
     
     (reset! props (cl/properties "scruffian"))
     (reset! jg-config (jargon-init))))
+
+(defn local-init
+  [local-config-path]
+  (println "local-init")
+  (let [main-props (prps/read-properties local-config-path)]
+    (println main-props)
+    (reset! props main-props)
+    (println @props)
+    (reset! jg-config (jargon-init))
+    (println @jg-config)))

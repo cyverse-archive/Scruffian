@@ -149,4 +149,14 @@ Success:
         "date-modified" : "<seconds since the epoch as a string>",
         "file-size" : "<size in bytes as a string>"
     }
+
+## Local Development
+
+To run scruffian locally:
+
+    lein run --config /path/to/local/config
+
+To see the (sparse) help:
+
+    lein run -- --help
     

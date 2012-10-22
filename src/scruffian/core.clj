@@ -10,6 +10,7 @@
         [slingshot.slingshot :only [try+]]
         [clojure.data.json :only [json-str]])
   (:require [clojure.tools.logging :as log]
+            [clojure.tools.cli :as cli]
             [compojure.route :as route]
             [compojure.handler :as handler]
             [ring.adapter.jetty :as jetty]
@@ -92,10 +93,34 @@
     wrap-nested-params
     qp/wrap-query-params))
 
+(defn parse-args
+  [args]
+  (cli/cli
+   args
+    ["-c" "--config" 
+     "Set the local config file to read from. Bypasses Zookeeper" 
+     :default nil]
+    ["-h" "--help" 
+     "Show help." 
+     :default false 
+     :flag true]))
+
 (defn -main
-  [& args]  
-  (init)
-  (log/warn (str "Listening on " (listen-port)))
-  (jetty/run-jetty (site-handler scruffian-routes) {:port (listen-port)}))
+  [& args]
+  (let [[opts args help-str] (parse-args args)]
+    (when (:help opts)
+      (println help-str)
+      (System/exit 0))
+
+    (if (:config opts)
+      (println (:config opts)))
+    
+    (if (:config opts)
+      (local-init (:config opts))
+      (init))
+    
+    (log/warn (str "Listening on " (listen-port)))
+
+    (jetty/run-jetty (site-handler scruffian-routes) {:port (listen-port)})))
 
 

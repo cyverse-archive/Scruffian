@@ -174,21 +174,21 @@
     
     (when (exists? cm (ft/path-join dest-path filename))
       (throw+ {:error_code ERR_EXISTS
-               :path (ft/path-join dest-path filename)})))
-  
-  (let [req-body (jex-urlimport user address filename dest-path)
-        {jex-status :status jex-body :body} (jex-send req-body)]
-    (when (not= jex-status 200)
-      (throw+ {:msg jex-body
-               :error_code ERR_REQUEST_FAILED}))
-    (prov/log-provenance cm user address prov/url-import
-                         :data {:url address
-                                :dest (ft/path-join dest-path filename)})
-    {:status "success" 
-     :msg "Upload scheduled."
-     :url address
-     :label filename
-     :dest dest-path}))
+               :path (ft/path-join dest-path filename)}))
+    
+    (let [req-body (jex-urlimport user address filename dest-path)
+          {jex-status :status jex-body :body} (jex-send req-body)]
+      (when (not= jex-status 200)
+        (throw+ {:msg jex-body
+                 :error_code ERR_REQUEST_FAILED}))
+      (prov/log-provenance cm user address prov/url-import
+                           :data {:url address
+                                  :dest (ft/path-join dest-path filename)})
+      {:status "success" 
+       :msg "Upload scheduled."
+       :url address
+       :label filename
+       :dest dest-path})))
 
 (defn download
   "Returns a response map filled out with info that lets the client download
