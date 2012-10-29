@@ -9,7 +9,8 @@
             [scruffian.ssl :as ssl]
             [clojure.data.json :as json]
             [clojure.tools.logging :as log]
-            [ring.util.response :as rsp-utils]))
+            [ring.util.response :as rsp-utils]
+            [cemerick.url :as url-parser]))
 
 (defn invalid-fields
   "Validates the format of a map against a spec.
@@ -155,6 +156,21 @@
         up-path  (get (:multipart-params request) "file")]
     (actions/upload user up-path dest)))
 
+(defn url-filename
+  [address]
+  (let [parsed-url (url-parser/url address)]
+    (when-not (:protocol parsed-url)
+      (throw+ {:error_code ERR_INVALID_URL
+                :url address}))
+
+    (when-not (:host parsed-url)
+      (throw+ {:error_code ERR_INVALID_URL
+               :url address}))
+    
+    (if-not (string/blank? (:path parsed-url))
+      (ft/basename (:path parsed-url))
+      (:host parsed-url))))
+
 (defn do-urlupload
   [request]
   (when (not (query-param? request "user"))
@@ -165,16 +181,14 @@
   
   (let [user    (query-param request "user")
         dest    (string/trim (:dest (:body request)))
-        fname   (ft/basename dest)
-        ddir    (ft/dirname dest)
         addr    (string/trim (:address (:body request)))
-        istream (ssl/input-stream addr)]
+        istream (ssl/input-stream addr)
+        fname   (url-filename addr)]
     (log/warn (str "User: " user))
     (log/warn (str "Dest: " dest))
     (log/warn (str "Fname: " fname))
-    (log/warn (str "Ddir: " ddir))
     (log/warn (str "Addr: " addr))  
-    (actions/urlimport user addr fname ddir)))
+    (actions/urlimport user addr fname dest)))
 
 (defn do-saveas
   [request]
