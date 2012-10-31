@@ -200,7 +200,7 @@
     (bad-body request {:dest string? :content string?}))
   
   (let [user (query-param request "user")
-        dest (:dest (:body request))
+        dest (string/trim (:dest (:body request)))
         cont (:content (:body request))]
     (with-jargon (jargon-config) [cm]
       (when (not (user-exists? cm user))
