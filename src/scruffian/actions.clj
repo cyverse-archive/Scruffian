@@ -1,6 +1,7 @@
 (ns scruffian.actions
-  (:use [clj-jargon.jargon]
-        [scruffian.error-codes]
+  (:use clj-jargon.jargon
+        scruffian.error-codes
+        [scruffian.config :exclude [init]]
         [slingshot.slingshot :only [try+ throw+]])
   (:require [clojure-commons.file-utils :as ft]
             [clojure.java.io :as io]
@@ -9,84 +10,60 @@
             [ring.util.response :as rsp-utils]
             [clojure.string :as string]
             [clj-http.client :as client]
-            [cemerick.url :as url]))
-
-(def curl-path "/usr/local/bin/curl_wrapper.pl")
-(def jex-url (atom ""))
-(def irods-username (atom ""))
-
-(defn scruffian-init
-  [props]
-  (let [host (get props "scruffian.irods.host")
-        port (get props "scruffian.irods.port")
-        zone (get props "scruffian.irods.zone")
-        user (get props "scruffian.irods.username")
-        pass (get props "scruffian.irods.password")
-        home (get props "scruffian.irods.home")
-        resc (get props "scruffian.irods.defaultResource")]
-    (log/debug (str "Host: " host))
-    (log/debug (str "Port: " port))
-    (log/debug (str "Zone: " zone))
-    (log/debug (str "User: " user))
-    (log/debug (str "Pass: lol"))
-    (log/debug (str "Home: " home))
-    (log/debug (str "Resc: " resc))
-    
-    (reset! jex-url (get props "scruffian.app.jex"))
-    (reset! irods-username (get props "scruffian.irods.username"))
-    (log/debug (str "jex url: " @jex-url))
-    
-    (init host port user pass home zone resc)))
+            [cemerick.url :as url]
+            [scruffian.prov :as prov]))
 
 (defn set-meta
   [path attr value unit]
-  (with-jargon
-    (set-metadata path attr value unit)))
+  (with-jargon (jargon-config) [cm]
+    (set-metadata cm path attr value unit)))
 
 (defn scruffy-copy
-  [user istream dest-path]
-  (let [ostream (output-stream dest-path)]
+  [cm user istream dest-path]
+  (let [ostream (output-stream cm dest-path)]
     (try
       (io/copy istream ostream)
       (finally
         (.close istream)
         (.close ostream)
-        (set-owner dest-path user)))
+        (set-owner cm dest-path user)))
     {:status "success"
      :id dest-path
-     :permissions (dataobject-perm-map user dest-path)}))
+     :permissions (dataobject-perm-map cm user dest-path)}))
 
 (defn store
-  [istream user dest-path]
+  [cm istream user dest-path]
   (let [ddir (ft/dirname dest-path)]
-    (when (not (exists? ddir))
-      (mkdirs ddir))
+    (when (not (exists? cm ddir))
+      (mkdirs cm ddir))
     
-    (when (not (is-writeable? user ddir))
+    (when (not (is-writeable? cm user ddir))
       (log/error (str "Directory " ddir " is not writeable."))
       (throw+ {:error_code ERR_NOT_WRITEABLE
                :path ddir} ))
     
-    (scruffy-copy user istream dest-path)
+    (scruffy-copy cm user istream dest-path)
     dest-path))
 
 (defn- get-istream
   [user file-path]
-  (with-jargon
-    (when (not (user-exists? user))
+  (with-jargon (jargon-config) [cm]
+    (when (not (user-exists? cm user))
       (throw+ {:error_code ERR_NOT_A_USER
                :user user}))
-    (when (not (exists? file-path))
+    (when (not (exists? cm file-path))
       (throw+ {:error_code ERR_DOES_NOT_EXIST
                :path file-path})) 
-    (when (not (is-readable? user file-path))
+    (when (not (is-readable? cm user file-path))
       (throw+ {:error_code ERR_NOT_READABLE
                :user user
                :path file-path}))
     
-    (if (= (file-size file-path) 0)
-      ""
-      (input-stream file-path))))
+    (let [in-stream  (if (= (file-size cm file-path) 0)
+                       ""
+                       (input-stream cm file-path))]
+      (prov/log-provenance cm user file-path prov/download :data {:path file-path})
+      in-stream)))
 
 (defn- new-filename
   [tmp-path]
@@ -94,37 +71,39 @@
 
 (defn upload
   [user tmp-path final-path]
-  (with-jargon
-    (when (not (user-exists? user))
+  (with-jargon (jargon-config) [cm]
+    (when (not (user-exists? cm user))
       (throw+ {:error_code ERR_NOT_A_USER
                :user user}))
     
-    (when (not (exists? final-path))
+    (when (not (exists? cm final-path))
       (throw+ {:error_code ERR_DOES_NOT_EXIST 
                :id final-path}))
     
-    (when (not (is-writeable? user final-path))
+    (when (not (is-writeable? cm user final-path))
       (throw+ {:error_code ERR_NOT_WRITEABLE 
                :id final-path}))
     
     (let [new-fname (new-filename tmp-path)
           new-path  (ft/path-join final-path new-fname)]
-      (if (exists? new-path)
-        (delete new-path))
-      (move tmp-path new-path)
-      (set-owner new-path user)
-      (fix-owners new-path user @irods-username)
+      (if (exists? cm new-path)
+        (delete cm new-path))
+      (move cm tmp-path new-path)
+      (set-owner cm new-path user)
+      (prov/log-provenance cm user new-path prov/upload :data {:path new-path})
       {:status "success"
        :file {:id new-path
               :label (ft/basename new-path)
-              :permissions (dataobject-perm-map user new-path)
-              :date-created (created-date new-path)
-              :date-modified (lastmod-date new-path)
-              :file-size (str (file-size new-path))}})))
+              :permissions (dataobject-perm-map cm user new-path)
+              :date-created (created-date cm new-path)
+              :date-modified (lastmod-date cm new-path)
+              :file-size (str (file-size cm new-path))}})))
 
 (defn url-encode-path
   [path-to-encode]
-  (string/join "/" (mapv url/url-encode (string/split path-to-encode #"\/"))))
+  (string/join
+   "/"
+   (mapv url/url-encode (string/split path-to-encode #"\/"))))
 
 (defn url-encode-url
   [url-to-encode]
@@ -169,7 +148,7 @@
 (defn- jex-send
   [body]
   (client/post 
-    @jex-url 
+    (jex-url)
     {:content-type :json 
      :body body}))
 
@@ -177,35 +156,39 @@
   "Pushes out an import job to the JEX.
    
    Parameters:
-     user - string containing the username of the user that requested the import.
+     user - string containing the username of the user that requested the
+        import.
      address - string containing the URL of the file to be imported.
      filename - the filename of the file being imported.
      dest-path - irods path indicating the directory the file should go in."
   [user address filename dest-path]
-  (with-jargon
-    (when (not (user-exists? user))
+  (with-jargon (jargon-config) [cm]
+    (when (not (user-exists? cm user))
       (throw+ {:error_code ERR_NOT_A_USER
                :user user}))
     
-    (when (not (is-writeable? user dest-path))
+    (when (not (is-writeable? cm user dest-path))
       (throw+ {:error_code ERR_NOT_WRITEABLE
                :user user
                :path dest-path}))
     
-    (when (exists? (ft/path-join dest-path filename))
+    (when (exists? cm (ft/path-join dest-path filename))
       (throw+ {:error_code ERR_EXISTS
-               :path (ft/path-join dest-path filename)})))
-  
-  (let [req-body (jex-urlimport user address filename dest-path)
-        {jex-status :status jex-body :body} (jex-send req-body)]
-    (when (not= jex-status 200)
-      (throw+ {:msg jex-body
-               :error_code ERR_REQUEST_FAILED}))
-    {:status "success" 
-     :msg "Upload scheduled."
-     :url address
-     :label filename
-     :dest dest-path}))
+               :path (ft/path-join dest-path filename)}))
+    
+    (let [req-body (jex-urlimport user address filename dest-path)
+          {jex-status :status jex-body :body} (jex-send req-body)]
+      (when (not= jex-status 200)
+        (throw+ {:msg jex-body
+                 :error_code ERR_REQUEST_FAILED}))
+      (prov/log-provenance cm user address prov/url-import
+                           :data {:url address
+                                  :dest (ft/path-join dest-path filename)})
+      {:status "success" 
+       :msg "Upload scheduled."
+       :url address
+       :label filename
+       :dest dest-path})))
 
 (defn download
   "Returns a response map filled out with info that lets the client download

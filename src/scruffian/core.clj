@@ -6,9 +6,11 @@
         [ring.middleware.nested-params]
         [ring.middleware.multipart-params]
         [scruffian.error-codes]
+        [scruffian.config]
         [slingshot.slingshot :only [try+]]
         [clojure.data.json :only [json-str]])
   (:require [clojure.tools.logging :as log]
+            [clojure.tools.cli :as cli]
             [compojure.route :as route]
             [compojure.handler :as handler]
             [ring.adapter.jetty :as jetty]
@@ -19,12 +21,6 @@
             [clojure-commons.clavin-client :as cl]
             [clojure-commons.props :as cc-props]
             [clojure-commons.file-utils :as ft]))
-
-(def props (atom nil))
-
-(defn listen-port 
-  [] 
-  (Integer/parseInt (get @props "scruffian.app.listen-port")))
 
 (defn err-resp [action err-obj]
   {:status 500
@@ -97,25 +93,34 @@
     wrap-nested-params
     qp/wrap-query-params))
 
+(defn parse-args
+  [args]
+  (cli/cli
+   args
+    ["-c" "--config" 
+     "Set the local config file to read from. Bypasses Zookeeper" 
+     :default nil]
+    ["-h" "--help" 
+     "Show help." 
+     :default false 
+     :flag true]))
+
 (defn -main
   [& args]
-  (def zkprops (cc-props/parse-properties "zkhosts.properties"))
-  (def zkurl (get zkprops "zookeeper"))
-  
-  (cl/with-zk
-    zkurl
-    (when (not (cl/can-run?))
-      (log/warn "THIS APPLICATION CANNOT RUN ON THIS MACHINE. SO SAYETH ZOOKEEPER.")
-      (log/warn "THIS APPLICATION WILL NOT EXECUTE CORRECTLY.")
-      (System/exit 1))
+  (let [[opts args help-str] (parse-args args)]
+    (when (:help opts)
+      (println help-str)
+      (System/exit 0))
+
+    (if (:config opts)
+      (println (:config opts)))
     
-    (reset! props (cl/properties "scruffian")))
-  
-  (actions/scruffian-init @props)
-  (ctlr/ctlr-init @props)
-  (log/debug (str "properties: " @props))
-  
-  (log/warn (str "Listening on " (listen-port)))
-  (jetty/run-jetty (site-handler scruffian-routes) {:port (listen-port)}))
+    (if (:config opts)
+      (local-init (:config opts))
+      (init))
+    
+    (log/warn (str "Listening on " (listen-port)))
+
+    (jetty/run-jetty (site-handler scruffian-routes) {:port (listen-port)})))
 
 

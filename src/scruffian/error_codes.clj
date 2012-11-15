@@ -21,6 +21,7 @@
 (def ERR_INCOMPLETE_RENAME       "ERR_INCOMPLETE_RENAME")
 (def ERR_REQUEST_FAILED          "ERR_REQUEST_FAILED")
 (def ERR_UNCHECKED_EXCEPTION     "ERR_UNCHECKED_EXCEPTION")
+(def ERR_INVALID_URL             "ERR_INVALID_URL")
 
 (defn error? [obj] (contains? obj :error_code))
 
