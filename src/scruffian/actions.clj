@@ -13,7 +13,7 @@
 
 (def curl-path "/usr/local/bin/curl_wrapper.pl")
 (def jex-url (atom ""))
-(def irods-username (atom ""))
+(def admin-owners (atom []))
 
 (defn scruffian-init
   [props]
@@ -33,7 +33,7 @@
     (log/debug (str "Resc: " resc))
     
     (reset! jex-url (get props "scruffian.app.jex"))
-    (reset! irods-username (get props "scruffian.irods.username"))
+    (reset! admin-owners (string/split (get props "scruffian.irods.admin-owners") #","))
     (log/debug (str "jex url: " @jex-url))
     
     (init host port user pass home zone resc)))
@@ -113,7 +113,7 @@
         (delete new-path))
       (move tmp-path new-path)
       (set-owner new-path user)
-      (fix-owners new-path user @irods-username)
+      (apply fix-owners new-path user @admin-owners)
       {:status "success"
        :file {:id new-path
               :label (ft/basename new-path)
