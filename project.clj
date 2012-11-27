@@ -1,4 +1,4 @@
-(defproject scruffian/scruffian "1.0.0-SNAPSHOT"
+(defproject scruffian/scruffian "1.1.0-SNAPSHOT"
   :dependencies [[org.clojure/clojure "1.4.0"]
                  [org.clojure/data.json "0.1.1"]
                  [org.clojure/tools.logging "0.2.3"]
