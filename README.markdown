@@ -88,16 +88,19 @@ __Error codes__:
 + ERR_REQUEST_FAILED (General failure to spawn upload thread)
 
 __Request Query Parameters__:
+
 * user - The iRODS username of the user making the request
 
 
 __Request Body__:
+
     {
         "dest" : "/iplant/home/testuser/",
         "address" : "http://www.google.com/index.html"
     }
 
 __Response__:
+
 On success you should get JSON that looks like this:
 
     {
@@ -119,6 +122,7 @@ On on error, you'll either get a stacktrace or JSON that looks like this:
     }
 
 __Curl Command__:
+
     curl -H "Content-Type:application/json" -d '{"dest" : "/iplant/home/testuser/", "address" : "http://www.google.com/index.html"}' http://127.0.0.1:31370/urlupload?user=testuser
     
 Adding the "Content-Type" header is required. You'll get JSON parsing or format errors otherwise.
