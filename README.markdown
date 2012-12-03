@@ -71,9 +71,13 @@ A success will return JSON like this:
     }
 
 ## URL Uploads
-Action: "url-upload"
+__URL Path__: /urlupload
 
-Error codes:
+__HTTP Method__: POST
+
+__Action__: url-upload
+
+__Error codes__:
 
 + ERR_INVALID_JSON (Missing content-type or JSON syntax error)
 + ERR_BAD_OR_MISSING_FIELD (Missing JSON field or invalid JSON field value)
@@ -83,14 +87,17 @@ Error codes:
 + ERR_ERR_EXISTS (Destination file already exists)
 + ERR_REQUEST_FAILED (General failure to spawn upload thread)
 
+__Request Query Parameters__:
+* user - The iRODS username of the user making the request
 
-It's easiest to show this through a curl command.
 
-    curl -H "Content-Type:application/json" -d '{"dest" : "/iplant/home/testuser/testfile.txt", "address" : "http://www.google.com"}' http://127.0.0.1:31370/urlupload?user=testuser
-    
-Adding the "Content-Type" header is required. You'll get JSON parsing or format errors otherwise.
-The 'dest' value in the JSON refers to the full path, including the filename. That's the filename the contents of 'address' will be saved off to. The file will be overwritten if it already exists.
+__Request Body__:
+    {
+        "dest" : "/iplant/home/testuser/",
+        "address" : "http://www.google.com/index.html"
+    }
 
+__Response__:
 On success you should get JSON that looks like this:
 
     {
@@ -110,6 +117,13 @@ On on error, you'll either get a stacktrace or JSON that looks like this:
         "msg" : "<JSON passed in through the request>",
         "error_code" : "ERR_REQUEST_FAILED"
     }
+
+__Curl Command__:
+    curl -H "Content-Type:application/json" -d '{"dest" : "/iplant/home/testuser/", "address" : "http://www.google.com/index.html"}' http://127.0.0.1:31370/urlupload?user=testuser
+    
+Adding the "Content-Type" header is required. You'll get JSON parsing or format errors otherwise.
+The 'dest' value in the JSON refers to the path to the directory in iRODS that the file will be saved off to. The filename of the file will be extracted from the path portion of the URL. The file will be overwritten if it already exists.
+
 
 ## Note on Uploads
 
