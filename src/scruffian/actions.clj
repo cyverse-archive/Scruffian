@@ -115,35 +115,39 @@
   (let [curl-dir  (ft/dirname curl-path)
         curl-name (ft/basename curl-path)
         job-name (str "url_import_" filename)
-        job-desc (str "URL Import of " filename " from " address)]
-    (json/json-str 
-      {:name job-name
-       :type "data"
-       :description job-desc
-       :output_dir dest-path
-       :create_output_subdir false
-       :uuid (str (java.util.UUID/randomUUID))
-       :monitor_transfer_logs false
-       :username user
-       :steps 
-       [{:component 
-         {:location curl-dir
-          :name curl-name}
-         :config
-         {:params
-          [{:name "-o"
-            :value filename
-            :order 1}
-           {:name (url-encode-url address)
-            :value ""
-            :order 2}]
-          :input []
-          :output 
-          [{:name "logs"
-            :property "logs"
-            :type "File"
-            :multiplicity "collection"
-            :retain false}]}}]})))
+        job-desc (str "URL Import of " filename " from " address)
+        submission-json (json/json-str 
+                         {:name job-name
+                          :type "data"
+                          :description job-desc
+                          :output_dir dest-path
+                          :create_output_subdir false
+                          :uuid (str (java.util.UUID/randomUUID))
+                          :monitor_transfer_logs false
+                          :username user
+                          :steps 
+                          [{:component 
+                            {:location curl-dir
+                             :name curl-name}
+                            :config
+                            {:params
+                             [{:name "-o"
+                               :value filename
+                               :order 1}
+                              {:name (url-encode-url address)
+                               :value ""
+                               :order 2}]
+                             :input []
+                             :output 
+                             [{:name "logs"
+                               :property "logs"
+                               :type "File"
+                               :multiplicity "collection"
+                               :retain false}]}}]})]
+    (log/warn "Curl directory: " curl-dir)
+    (log/warn "Curl name: " curl-name)
+    (log/warn "Submission JSON:\n" submission-json)
+    submission-json))
 
 (defn- jex-send
   [body]
@@ -178,12 +182,13 @@
     
     (let [req-body (jex-urlimport user address filename dest-path)
           {jex-status :status jex-body :body} (jex-send req-body)]
+      (log/warn "Status from JEX: " jex-status)
+      (log/warn "Body from JEX: " jex-body)
+      
       (when (not= jex-status 200)
         (throw+ {:msg jex-body
                  :error_code ERR_REQUEST_FAILED}))
-      (prov/log-provenance cm user address prov/url-import
-                           :data {:url address
-                                  :dest (ft/path-join dest-path filename)})
+      
       {:status "success" 
        :msg "Upload scheduled."
        :url address
