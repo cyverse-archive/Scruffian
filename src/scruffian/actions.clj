@@ -134,7 +134,7 @@
                              [{:name "-o"
                                :value filename
                                :order 1}
-                              {:name (url-encode-url address)
+                              {:name (str "'" (url-encode-url address) "'")
                                :value ""
                                :order 2}]
                              :input []
