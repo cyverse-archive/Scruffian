@@ -7,7 +7,6 @@
             [clojure-commons.file-utils :as ft]
             [clojure.string :as string]
             [scruffian.ssl :as ssl]
-            [clojure.data.json :as json]
             [clojure.tools.logging :as log]
             [ring.util.response :as rsp-utils]
             [cemerick.url :as url-parser]))
@@ -46,10 +45,10 @@
   (cond
     (not (map? (:body request)))
     false
-    
+
     (not (map-is-valid? (:body request) body-spec))
     false
-    
+
     :else
     true))
 
@@ -97,11 +96,11 @@
   (throw+ {:error_code ERR_MISSING_QUERY_PARAMETER
            :param query-param}))
 
-(defn bad-body 
+(defn bad-body
   [request body-spec]
   (when (not (map? (:body request)))
     (throw+ {:error_code ERR_INVALID_JSON}))
-  
+
   (when (not (map-is-valid? (:body request) body-spec))
     (throw+ {:error_code ERR_BAD_OR_MISSING_FIELD
              :fields (invalid-fields  (:body request) body-spec)})))
@@ -126,12 +125,12 @@
 
 (defn do-download
   [request]
-  (when (not (query-param? request "user")) 
+  (when (not (query-param? request "user"))
     (throw+ (bad-query "user")))
-  
+
   (when (not (query-param? request "path"))
     (throw+ (bad-query "path")))
-  
+
   (let [user     (query-param request "user")
         filepath (query-param request "path")]
     (actions/download user filepath)))
@@ -142,15 +141,15 @@
   (when (not (form-param? request "user"))
     (throw+ {:error_code ERR_MISSING_FORM_FIELD
              :field "user"}))
-  
+
   (when (not (form-param? request "dest"))
     (throw+ {:error_code ERR_MISSING_FORM_FIELD
              :field "dest"}))
-  
+
   (when (not (contains? (:multipart-params request) "file"))
     (throw+ {:error_code ERR_MISSING_FORM_FIELD
              :field "file"}))
-  
+
   (let [user     (form-param request "user")
         dest     (form-param request "dest")
         up-path  (get (:multipart-params request) "file")]
@@ -166,7 +165,7 @@
     (when-not (:host parsed-url)
       (throw+ {:error_code ERR_INVALID_URL
                :url address}))
-    
+
     (if-not (string/blank? (:path parsed-url))
       (ft/basename (:path parsed-url))
       (:host parsed-url))))
@@ -175,10 +174,10 @@
   [request]
   (when (not (query-param? request "user"))
     (bad-query "user"))
-  
+
   (when (not (valid-body? request {:dest string? :address string?}))
     (bad-body request {:dest string? :address string?}))
-  
+
   (let [user    (query-param request "user")
         dest    (string/trim (:dest (:body request)))
         addr    (string/trim (:address (:body request)))
@@ -187,7 +186,7 @@
     (log/warn (str "User: " user))
     (log/warn (str "Dest: " dest))
     (log/warn (str "Fname: " fname))
-    (log/warn (str "Addr: " addr))  
+    (log/warn (str "Addr: " addr))
     (actions/urlimport user addr fname dest)))
 
 (defn do-saveas
@@ -195,10 +194,10 @@
   (log/warn (str "REQUEST: " request))
   (when (not (query-param? request "user"))
     (bad-query "user"))
-  
+
   (when (not (valid-body? request {:dest string? :content string?}))
     (bad-body request {:dest string? :content string?}))
-  
+
   (let [user (query-param request "user")
         dest (string/trim (:dest (:body request)))
         cont (:content (:body request))]
@@ -206,18 +205,18 @@
       (when (not (user-exists? cm user))
         (throw+ {:user user
                  :error_code ERR_NOT_A_USER}))
-      
+
       (when (not (exists? cm (ft/dirname dest)))
         (throw+ {:error_code ERR_DOES_NOT_EXIST
                  :path (ft/dirname dest)}))
-      
+
       (when (not (is-writeable? cm user (ft/dirname dest)))
         (throw+ {:error_code ERR_NOT_WRITEABLE
                  :path (ft/dirname dest)}))
-      
+
       (when (exists? cm dest)
         (throw+ {:error_code ERR_EXISTS :path dest}))
-      
+
       (with-in-str cont
         (actions/store cm *in* user dest)
         {:status "success"
