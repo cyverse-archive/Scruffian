@@ -1,5 +1,6 @@
 (ns scruffian.config
-  (:require [clojure.tools.logging :as log]
+  (:require [clojure.string :as string]
+            [clojure.tools.logging :as log]
             [clojure-commons.clavin-client :as cl]
             [clojure-commons.props :as prps]
             [clj-jargon.jargon :as jargon]))
@@ -27,6 +28,9 @@
 (defn irods-resc [] (get @props "scruffian.irods.defaultResource"))
 (defn irods-temp [] (get @props "scruffian.irods.temp-dir"))
 
+(def irods-admins
+  (memoize #(set (string/split (get @props "scruffian.irods.admin-users") #", *"))))
+
 (defn service-name [] (get @props "scruffian.app.service-name"))
 (defn prov-url [] (get @props "scruffian.app.prov-url"))
 
@@ -45,7 +49,7 @@
   []
   (def zkprops (prps/parse-properties "zkhosts.properties"))
   (def zkurl (get zkprops "zookeeper"))
-  
+
   (cl/with-zk
     zkurl
     (when (not (cl/can-run?))
@@ -53,7 +57,7 @@
        "THIS APPLICATION CANNOT RUN ON THIS MACHINE.SO SAYETH ZOOKEEPER.")
       (log/warn "THIS APPLICATION WILL NOT EXECUTE CORRECTLY.")
       (System/exit 1))
-    
+
     (reset! props (cl/properties "scruffian"))
     (reset! jg-config (jargon-init))))
 

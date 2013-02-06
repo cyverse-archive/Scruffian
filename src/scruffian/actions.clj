@@ -36,12 +36,12 @@
   (let [ddir (ft/dirname dest-path)]
     (when (not (exists? cm ddir))
       (mkdirs cm ddir))
-    
+
     (when (not (is-writeable? cm user ddir))
       (log/error (str "Directory " ddir " is not writeable."))
       (throw+ {:error_code ERR_NOT_WRITEABLE
                :path ddir} ))
-    
+
     (scruffy-copy cm user istream dest-path)
     dest-path))
 
@@ -53,12 +53,12 @@
                :user user}))
     (when (not (exists? cm file-path))
       (throw+ {:error_code ERR_DOES_NOT_EXIST
-               :path file-path})) 
+               :path file-path}))
     (when (not (is-readable? cm user file-path))
       (throw+ {:error_code ERR_NOT_READABLE
                :user user
                :path file-path}))
-    
+
     (let [in-stream  (if (= (file-size cm file-path) 0)
                        ""
                        (input-stream cm file-path))]
@@ -75,20 +75,20 @@
     (when (not (user-exists? cm user))
       (throw+ {:error_code ERR_NOT_A_USER
                :user user}))
-    
+
     (when (not (exists? cm final-path))
-      (throw+ {:error_code ERR_DOES_NOT_EXIST 
+      (throw+ {:error_code ERR_DOES_NOT_EXIST
                :id final-path}))
-    
+
     (when (not (is-writeable? cm user final-path))
-      (throw+ {:error_code ERR_NOT_WRITEABLE 
+      (throw+ {:error_code ERR_NOT_WRITEABLE
                :id final-path}))
-    
+
     (let [new-fname (new-filename tmp-path)
           new-path  (ft/path-join final-path new-fname)]
       (if (exists? cm new-path)
         (delete cm new-path))
-      (move cm tmp-path new-path)
+      (move cm tmp-path new-path :user user :admin-users (irods-admins))
       (set-owner cm new-path user)
       (prov/log-provenance cm user new-path prov/upload :data {:path new-path})
       {:status "success"
@@ -116,7 +116,7 @@
         curl-name (ft/basename curl-path)
         job-name (str "url_import_" filename)
         job-desc (str "URL Import of " filename " from " address)
-        submission-json (json/json-str 
+        submission-json (json/json-str
                          {:name job-name
                           :type "data"
                           :description job-desc
@@ -125,8 +125,8 @@
                           :uuid (str (java.util.UUID/randomUUID))
                           :monitor_transfer_logs false
                           :username user
-                          :steps 
-                          [{:component 
+                          :steps
+                          [{:component
                             {:location curl-dir
                              :name curl-name}
                             :config
@@ -138,7 +138,7 @@
                                :value ""
                                :order 2}]
                              :input []
-                             :output 
+                             :output
                              [{:name "logs"
                                :property "logs"
                                :type "File"
@@ -151,14 +151,14 @@
 
 (defn- jex-send
   [body]
-  (client/post 
+  (client/post
     (jex-url)
-    {:content-type :json 
+    {:content-type :json
      :body body}))
 
 (defn urlimport
   "Pushes out an import job to the JEX.
-   
+
    Parameters:
      user - string containing the username of the user that requested the
         import.
@@ -170,26 +170,26 @@
     (when (not (user-exists? cm user))
       (throw+ {:error_code ERR_NOT_A_USER
                :user user}))
-    
+
     (when (not (is-writeable? cm user dest-path))
       (throw+ {:error_code ERR_NOT_WRITEABLE
                :user user
                :path dest-path}))
-    
+
     (when (exists? cm (ft/path-join dest-path filename))
       (throw+ {:error_code ERR_EXISTS
                :path (ft/path-join dest-path filename)}))
-    
+
     (let [req-body (jex-urlimport user address filename dest-path)
           {jex-status :status jex-body :body} (jex-send req-body)]
       (log/warn "Status from JEX: " jex-status)
       (log/warn "Body from JEX: " jex-body)
-      
+
       (when (not= jex-status 200)
         (throw+ {:msg jex-body
                  :error_code ERR_REQUEST_FAILED}))
-      
-      {:status "success" 
+
+      {:status "success"
        :msg "Upload scheduled."
        :url address
        :label filename
@@ -203,6 +203,6 @@
   (let [istream (get-istream user file-path)]
     (-> {:status 200
          :body istream}
-      (rsp-utils/header 
-        "Content-Disposition" 
+      (rsp-utils/header
+        "Content-Disposition"
         (str "attachment; filename=\"" (ft/basename file-path) "\"")))))
