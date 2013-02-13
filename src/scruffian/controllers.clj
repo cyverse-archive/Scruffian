@@ -106,6 +106,28 @@
     (throw+ {:error_code ERR_BAD_OR_MISSING_FIELD
              :fields (invalid-fields  (:body request) body-spec)})))
 
+(defn parse-url
+  [url-str]
+  (try+
+   (url-parser/url url-str)
+   (catch java.net.UnknownHostException e
+     (throw+ {:error_code ERR_INVALID_URL
+              :url url-str}))
+   (catch java.net.MalformedURLException e
+     (throw+ {:error_code ERR_INVALID_URL
+              :url url-str}))))
+
+(defn in-stream
+  [address]
+  (try+
+   (ssl/input-stream address)
+   (catch java.net.UnknownHostException e
+     (throw+ {:error_code ERR_INVALID_URL
+              :url address}))
+   (catch java.net.MalformedURLException e
+     (throw+ {:error_code ERR_INVALID_URL
+              :url address}))))
+
 (defn gen-uuid []
   (str (java.util.UUID/randomUUID)))
 
@@ -182,7 +204,7 @@
   (let [user    (query-param request "user")
         dest    (string/trim (:dest (:body request)))
         addr    (string/trim (:address (:body request)))
-        istream (ssl/input-stream addr)
+        istream (in-stream addr)
         fname   (url-filename addr)]
     (log/warn (str "User: " user))
     (log/warn (str "Dest: " dest))
