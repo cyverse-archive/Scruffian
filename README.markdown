@@ -86,6 +86,7 @@ __Error codes__:
 + ERR_NOT_WRITEABLE (Destination directory isn't writeable by the specified user)
 + ERR_ERR_EXISTS (Destination file already exists)
 + ERR_REQUEST_FAILED (General failure to spawn upload thread)
++ ERR_INVALID_URL (URL that was passed in couldn't be used)
 
 __Request Query Parameters__:
 
@@ -119,6 +120,15 @@ On on error, you'll either get a stacktrace or JSON that looks like this:
         "action" : "url-upload",
         "msg" : "<JSON passed in through the request>",
         "error_code" : "ERR_REQUEST_FAILED"
+    }
+
+If the URL passed in is incorrect, then the error message will look like this:
+
+    {
+        "status" : "failure",
+        "action" : "url-upload",
+        "error_code" : "ERR_INVALID_URL",
+        "url" : "<URL Passed in>"
     }
 
 __Curl Command__:
