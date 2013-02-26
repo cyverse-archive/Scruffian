@@ -62,7 +62,6 @@
     (let [in-stream  (if (= (file-size cm file-path) 0)
                        ""
                        (input-stream cm file-path))]
-      (prov/log-provenance cm user file-path prov/download :data {:path file-path})
       in-stream)))
 
 (defn- new-filename
@@ -88,9 +87,8 @@
           new-path  (ft/path-join final-path new-fname)]
       (if (exists? cm new-path)
         (delete cm new-path))
-      (move cm tmp-path new-path :user user :admin-users (irods-admins))
+      (move cm tmp-path new-path :user user :admin-users (irods-admins) :skip-source-perms? true)
       (set-owner cm new-path user)
-      (prov/log-provenance cm user new-path prov/upload :data {:path new-path})
       {:status "success"
        :file {:id new-path
               :label (ft/basename new-path)
