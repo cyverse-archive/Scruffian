@@ -33,7 +33,7 @@ Error codes:
 Curl command:
 
     curl 'http://127.0.0.1:31370/download?user=testuser&path=/iplant/home/testuser/myfile.txt'
-    
+
 This will result is the file contents being barfed out to stdout. Redirect to a file to actually get the file.
 
 ## Uploading
@@ -49,7 +49,7 @@ Error codes:
 Uploading is handled through multipart requests. Here's a curl command:
 
     curl -F file=@testfile.txt -F user=testuser -F dest=/iplant/home/testuser/ http://127.0.0.1:31370/upload
-    
+
 The username is provided in the form data rather than as a query parameter.
 Also notice that the 'dest' value points to a directory and not a file.
 
@@ -84,7 +84,7 @@ __Error codes__:
 + ERR_MISSING_QUERY_PARAMETER (One of the query parameters is missing)
 + ERR_NOT_A_USER (Invalid user specified)
 + ERR_NOT_WRITEABLE (Destination directory isn't writeable by the specified user)
-+ ERR_ERR_EXISTS (Destination file already exists)
++ ERR_EXISTS (Destination file already exists)
 + ERR_REQUEST_FAILED (General failure to spawn upload thread)
 + ERR_INVALID_URL (URL that was passed in couldn't be used)
 
@@ -112,7 +112,7 @@ On success you should get JSON that looks like this:
         "label" : "<URL base filename>",
         "dest" : "<destination in irods>"
     }
-    
+
 On on error, you'll either get a stacktrace or JSON that looks like this:
 
     {
@@ -134,9 +134,9 @@ If the URL passed in is incorrect, then the error message will look like this:
 __Curl Command__:
 
     curl -H "Content-Type:application/json" -d '{"dest" : "/iplant/home/testuser/", "address" : "http://www.google.com/index.html"}' http://127.0.0.1:31370/urlupload?user=testuser
-    
+
 Adding the "Content-Type" header is required. You'll get JSON parsing or format errors otherwise.
-The 'dest' value in the JSON refers to the path to the directory in iRODS that the file will be saved off to. The filename of the file will be extracted from the path portion of the URL. The file will be overwritten if it already exists.
+The 'dest' value in the JSON refers to the path to the directory in iRODS that the file will be saved off to. The filename of the file will be extracted from the path portion of the URL.
 
 
 ## Note on Uploads
@@ -160,7 +160,7 @@ Error codes:
 Curl:
 
     curl -H "Content-Type:application/json" -d '{"content" : "This is the content for the file.", "dest" : "/iplant/home/testuser/savedfile.txt"}' http://127.0.0.1:31370/saveas?user=wregglej
-    
+
 Success:
 
     {
@@ -187,4 +187,4 @@ To run scruffian locally:
 To see the (sparse) help:
 
     lein run -- --help
-    
+
