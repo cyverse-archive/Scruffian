@@ -97,11 +97,19 @@
               :date-modified (lastmod-date cm new-path)
               :file-size (str (file-size cm new-path))}})))
 
+(defn url-encoded?
+  [string-to-check]
+  (re-seq #"\%[A-Fa-f0-9]{2}" string-to-check))
+
 (defn url-encode-path
   [path-to-encode]
   (string/join
    "/"
-   (mapv url/url-encode (string/split path-to-encode #"\/"))))
+   (mapv
+    #(if-not (url-encoded? %1)
+       (url/url-encode %1)
+       %1)
+    (string/split path-to-encode #"\/"))))
 
 (defn url-encode-url
   [url-to-encode]
@@ -132,7 +140,7 @@
                              [{:name "-o"
                                :value filename
                                :order 1}
-                              {:name (str "'" address "'")
+                              {:name (str "'" (url-encode-url address) "'")
                                :value ""
                                :order 2}]
                              :input []
@@ -178,7 +186,8 @@
       (throw+ {:error_code ERR_EXISTS
                :path (ft/path-join dest-path filename)}))
 
-    (let [req-body (jex-urlimport user address filename dest-path)
+    (let [decoded-filename (if (url-encoded? filename) (url/url-decode filename) filename)
+          req-body         (jex-urlimport user address decoded-filename dest-path)
           {jex-status :status jex-body :body} (jex-send req-body)]
       (log/warn "Status from JEX: " jex-status)
       (log/warn "Body from JEX: " jex-body)
@@ -190,7 +199,7 @@
       {:status "success"
        :msg "Upload scheduled."
        :url address
-       :label filename
+       :label decoded-filename
        :dest dest-path})))
 
 (defn download
