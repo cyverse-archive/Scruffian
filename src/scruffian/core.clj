@@ -64,7 +64,7 @@
             (log/error err)
             (err-resp "url-upload" (:object &throw-context)))
           (catch java.lang.Exception e
-            (log/error e)
+            (log/warn e)
             (err-resp "url-upload" (unchecked &throw-context)))))
 
   (POST "/saveas" request
