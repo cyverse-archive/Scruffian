@@ -120,8 +120,8 @@
   [user address filename dest-path]
   (let [curl-dir  (ft/dirname curl-path)
         curl-name (ft/basename curl-path)
-        job-name (str "url_import_" filename)
-        job-desc (str "URL Import of " filename " from " address)
+        job-name  (str "url_import_" filename)
+        job-desc  (str "URL Import of " filename " from " address)
         submission-json (cheshire/encode
                          {:name job-name
                           :type "data"
@@ -131,25 +131,27 @@
                           :uuid (str (java.util.UUID/randomUUID))
                           :monitor_transfer_logs false
                           :username user
-                          :steps
-                          [{:component
-                            {:location curl-dir
-                             :name curl-name}
-                            :config
-                            {:params
-                             [{:name "-o"
-                               :value filename
-                               :order 1}
-                              {:name (str "'" (url-encode-url address) "'")
-                               :value ""
-                               :order 2}]
-                             :input []
-                             :output
-                             [{:name "logs"
-                               :property "logs"
-                               :type "File"
-                               :multiplicity "collection"
-                               :retain false}]}}]})]
+                          :file-metadata [{:attr "ipc-url-import"
+                                           :value address
+                                           :unit  "Import URL"}]
+                          :steps [{:component
+                                   {:location curl-dir
+                                    :name curl-name}
+                                   :config
+                                   {:params
+                                    [{:name "-o"
+                                      :value filename
+                                      :order 1}
+                                     {:name (str "'" (url-encode-url address) "'")
+                                      :value ""
+                                      :order 2}]
+                                    :input []
+                                    :output
+                                    [{:name "logs"
+                                      :property "logs"
+                                      :type "File"
+                                      :multiplicity "collection"
+                                      :retain false}]}}]})]
     (log/warn "Curl directory: " curl-dir)
     (log/warn "Curl name: " curl-name)
     (log/warn "Submission JSON:\n" submission-json)
