@@ -8,7 +8,8 @@
                  [com.cemerick/url "0.0.6"]
                  [compojure "1.0.1"]
                  [ring/ring-jetty-adapter "1.0.1"]
-                 [clj-http "0.6.3"]]
+                 [clj-http "0.6.5"]
+                 [org.apache.httpcomponents/httpclient "4.2.4"]]
   :iplant-rpm {:summary "scruffian",
                :dependencies ["iplant-service-config >= 0.1.0-5"],
                :config-files ["log4j.properties"],
